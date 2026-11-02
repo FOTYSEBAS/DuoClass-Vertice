@@ -1,0 +1,433 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Public and workspace profile attributes for an authenticated user (non-PII).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Immutable Firebase Auth UID of the user.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Full display name of the user.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "jobTitle": {
+          "type": "string",
+          "description": "Role or professional title in the organization.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "department": {
+          "type": "string",
+          "description": "Department or team unit.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "organization": {
+          "type": "string",
+          "description": "Company or workspace organization name.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "bio": {
+          "type": "string",
+          "description": "Short professional biography or status note.",
+          "minLength": 0,
+          "maxLength": 280
+        },
+        "themePreference": {
+          "type": "string",
+          "description": "UI appearance preference.",
+          "enum": ["light", "dark"]
+        },
+        "notificationsEnabled": {
+          "type": "boolean",
+          "description": "Whether security and workspace alerts are enabled."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "jobTitle",
+        "department",
+        "organization",
+        "bio",
+        "themePreference",
+        "notificationsEnabled",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Strictly isolated PII contact record for the user.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Immutable Firebase Auth UID of the owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified email address of the user.",
+          "minLength": 3,
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "description": "Optional direct contact phone number.",
+          "minLength": 0,
+          "maxLength": 30
+        },
+        "recoveryLocation": {
+          "type": "string",
+          "description": "Primary office or city location for security verification.",
+          "minLength": 0,
+          "maxLength": 80
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last PII update."
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "phone",
+        "recoveryLocation",
+        "updatedAt"
+      ]
+    },
+    "AccessSession": {
+      "title": "AccessSession",
+      "description": "Audit log entry recorded when a user signs in or verifies their session.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "deviceLabel": {
+          "type": "string",
+          "description": "Platform and browser summary.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "actionType": {
+          "type": "string",
+          "description": "Type of authentication event.",
+          "enum": ["inicio_sesion", "verificacion_seguridad", "actualizacion_perfil"]
+        },
+        "note": {
+          "type": "string",
+          "description": "Context note for the access log entry.",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the event was recorded."
+        }
+      },
+      "required": [
+        "uid",
+        "deviceLabel",
+        "actionType",
+        "note",
+        "createdAt"
+      ]
+    },
+    "MathProgress": {
+      "title": "MathProgress",
+      "description": "Tracks the user's progress in the Mathematics course starting with Arithmetic.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "course": {
+          "type": "string",
+          "description": "Active course identifier.",
+          "enum": ["matematicas"]
+        },
+        "currentNodeIndex": {
+          "type": "integer",
+          "description": "Index of the current unlocked mathematics node (0 to 200)."
+        },
+        "xp": {
+          "type": "integer",
+          "description": "Total experience points earned."
+        },
+        "streak": {
+          "type": "integer",
+          "description": "Active daily streak count."
+        },
+        "gems": {
+          "type": "integer",
+          "description": "Total blue gems earned."
+        },
+        "hearts": {
+          "type": "integer",
+          "description": "Remaining hearts (0 to 5)."
+        },
+        "completedLessonsCount": {
+          "type": "integer",
+          "description": "Total completed arithmetic lessons."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when progress was last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "course",
+        "currentNodeIndex",
+        "xp",
+        "streak",
+        "gems",
+        "hearts",
+        "completedLessonsCount",
+        "updatedAt"
+      ]
+    },
+    "PhysicsProgress": {
+      "title": "PhysicsProgress",
+      "description": "Tracks the user's progress in the Physics course (Work, Energy, Conservation, Efficiency).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "course": {
+          "type": "string",
+          "description": "Active course identifier.",
+          "enum": ["fisica"]
+        },
+        "currentNodeIndex": {
+          "type": "integer",
+          "description": "Index of the current unlocked physics node (0 to 200)."
+        },
+        "xp": {
+          "type": "integer",
+          "description": "Total experience points earned in Physics."
+        },
+        "streak": {
+          "type": "integer",
+          "description": "Active daily streak count."
+        },
+        "gems": {
+          "type": "integer",
+          "description": "Total blue gems earned."
+        },
+        "hearts": {
+          "type": "integer",
+          "description": "Remaining hearts (0 to 5)."
+        },
+        "completedLessonsCount": {
+          "type": "integer",
+          "description": "Total completed physics lessons."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when progress was last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "course",
+        "currentNodeIndex",
+        "xp",
+        "streak",
+        "gems",
+        "hearts",
+        "completedLessonsCount",
+        "updatedAt"
+      ]
+    },
+    "ChemistryProgress": {
+      "title": "ChemistryProgress",
+      "description": "Tracks the user's progress in the Chemistry course (3 modules, 22 sections).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "course": {
+          "type": "string",
+          "description": "Active course identifier.",
+          "enum": ["quimica"]
+        },
+        "currentNodeIndex": {
+          "type": "integer",
+          "description": "Index of the current unlocked chemistry node (0 to 200)."
+        },
+        "xp": {
+          "type": "integer",
+          "description": "Total experience points earned in Chemistry."
+        },
+        "streak": {
+          "type": "integer",
+          "description": "Active daily streak count."
+        },
+        "gems": {
+          "type": "integer",
+          "description": "Total blue gems earned."
+        },
+        "hearts": {
+          "type": "integer",
+          "description": "Remaining hearts (0 to 5)."
+        },
+        "completedLessonsCount": {
+          "type": "integer",
+          "description": "Total completed chemistry lessons."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when progress was last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "course",
+        "currentNodeIndex",
+        "xp",
+        "streak",
+        "gems",
+        "hearts",
+        "completedLessonsCount",
+        "updatedAt"
+      ]
+    },
+    "SocialesProgress": {
+      "title": "SocialesProgress",
+      "description": "Tracks the user's progress in the Social Sciences course (5 modules, 20 sections).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "course": {
+          "type": "string",
+          "description": "Active course identifier.",
+          "enum": ["sociales"]
+        },
+        "currentNodeIndex": {
+          "type": "integer",
+          "description": "Index of the current unlocked social sciences node (0 to 200)."
+        },
+        "xp": {
+          "type": "integer",
+          "description": "Total experience points earned in Social Sciences."
+        },
+        "streak": {
+          "type": "integer",
+          "description": "Active daily streak count."
+        },
+        "gems": {
+          "type": "integer",
+          "description": "Total blue gems earned."
+        },
+        "hearts": {
+          "type": "integer",
+          "description": "Remaining hearts (0 to 5)."
+        },
+        "completedLessonsCount": {
+          "type": "integer",
+          "description": "Total completed social sciences lessons."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when progress was last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "course",
+        "currentNodeIndex",
+        "xp",
+        "streak",
+        "gems",
+        "hearts",
+        "completedLessonsCount",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores non-PII user profile settings keyed by userId."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivateInfo" },
+      "description": "Stores isolated PII contact details strictly for the user."
+    },
+    "/sessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/AccessSession" },
+      "description": "Stores immutable security access log entries owned by the authenticated user."
+    },
+    "/mathProgress/{userId}": {
+      "schema": { "$ref": "#/entities/MathProgress" },
+      "description": "Stores the user's Duolingo-style Mathematics node tree progress, hearts, streak, gems, and XP."
+    },
+    "/physicsProgress/{userId}": {
+      "schema": { "$ref": "#/entities/PhysicsProgress" },
+      "description": "Stores the user's Duolingo-style Physics node tree progress, hearts, streak, gems, and XP."
+    },
+    "/chemistryProgress/{userId}": {
+      "schema": { "$ref": "#/entities/ChemistryProgress" },
+      "description": "Stores the user's Duolingo-style Chemistry node tree progress, hearts, streak, gems, and XP."
+    },
+    "/socialesProgress/{userId}": {
+      "schema": { "$ref": "#/entities/SocialesProgress" },
+      "description": "Stores the user's Duolingo-style Social Sciences node tree progress, hearts, streak, gems, and XP."
+    }
+  }
+}

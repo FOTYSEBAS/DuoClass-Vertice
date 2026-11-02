@@ -1,0 +1,6 @@
+{
+  "name": "Vértice — Portal de Acceso y Espacio de Trabajo",
+  "description": "Sitio de inicio de sesión seguro, gestión de identidad y espacio de trabajo persistente con autenticación de Google y Cloud Firestore.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

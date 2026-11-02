@@ -1,0 +1,284 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 4.1: Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Hardened Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function userExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId)) ||
+        existsAfter(/databases/$(database)/documents/users/$(userId));
+    }
+
+    // Validation Blueprint: UserProfile (/users/{userId})
+    function isValidUserProfile(data) {
+      return data.keys().hasAll([
+          'uid',
+          'displayName',
+          'jobTitle',
+          'department',
+          'organization',
+          'bio',
+          'themePreference',
+          'notificationsEnabled',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'displayName',
+          'jobTitle',
+          'department',
+          'organization',
+          'bio',
+          'themePreference',
+          'notificationsEnabled',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.uid == request.auth.uid &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+        data.jobTitle is string && data.jobTitle.size() >= 1 && data.jobTitle.size() <= 80 &&
+        data.department is string && data.department.size() >= 1 && data.department.size() <= 60 &&
+        data.organization is string && data.organization.size() >= 1 && data.organization.size() <= 80 &&
+        data.bio is string && data.bio.size() >= 0 && data.bio.size() <= 280 &&
+        data.themePreference is string && (data.themePreference == 'light' || data.themePreference == 'dark') &&
+        data.notificationsEnabled is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: UserPrivateInfo (/users/{userId}/private/{docId})
+    function isValidUserPrivateInfo(data) {
+      return data.keys().hasAll([
+          'uid',
+          'email',
+          'phone',
+          'recoveryLocation',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'email',
+          'phone',
+          'recoveryLocation',
+          'updatedAt'
+        ]) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.uid == request.auth.uid &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+        data.phone is string && data.phone.size() >= 0 && data.phone.size() <= 30 &&
+        data.recoveryLocation is string && data.recoveryLocation.size() >= 0 && data.recoveryLocation.size() <= 80 &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint: AccessSession (/sessions/{sessionId})
+    function isValidAccessSession(data) {
+      return data.keys().hasAll([
+          'uid',
+          'deviceLabel',
+          'actionType',
+          'note',
+          'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'deviceLabel',
+          'actionType',
+          'note',
+          'createdAt'
+        ]) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.uid == request.auth.uid &&
+        data.deviceLabel is string && data.deviceLabel.size() >= 1 && data.deviceLabel.size() <= 100 &&
+        data.actionType is string && (
+          data.actionType == 'inicio_sesion' ||
+          data.actionType == 'verificacion_seguridad' ||
+          data.actionType == 'actualizacion_perfil'
+        ) &&
+        data.note is string && data.note.size() >= 1 && data.note.size() <= 160 &&
+        data.createdAt is timestamp;
+    }
+
+    // Validation Blueprint: MathProgress (/mathProgress/{userId})
+    function isValidMathProgress(data) {
+      return data.keys().hasAll([
+          'uid',
+          'course',
+          'currentNodeIndex',
+          'xp',
+          'streak',
+          'gems',
+          'hearts',
+          'completedLessonsCount',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'course',
+          'currentNodeIndex',
+          'xp',
+          'streak',
+          'gems',
+          'hearts',
+          'completedLessonsCount',
+          'updatedAt'
+        ]) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.uid == request.auth.uid &&
+        data.course is string && data.course == 'matematicas' &&
+        data.currentNodeIndex is int && data.currentNodeIndex >= 0 && data.currentNodeIndex <= 50 &&
+        data.xp is int && data.xp >= 0 && data.xp <= 1000000 &&
+        data.streak is int && data.streak >= 0 && data.streak <= 10000 &&
+        data.gems is int && data.gems >= 0 && data.gems <= 1000000 &&
+        data.hearts is int && data.hearts >= 0 && data.hearts <= 5 &&
+        data.completedLessonsCount is int && data.completedLessonsCount >= 0 && data.completedLessonsCount <= 100000 &&
+        data.updatedAt is timestamp;
+    }
+
+    // Collection 1: /users/{userId}
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isVerified() &&
+        isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isVerified() &&
+        isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'displayName',
+            'jobTitle',
+            'department',
+            'organization',
+            'bio',
+            'themePreference',
+            'notificationsEnabled',
+            'updatedAt'
+          ])
+        );
+
+      allow delete: if false;
+
+      // Subcollection: /users/{userId}/private/{docId} (PII Isolation)
+      match /private/{docId} {
+        allow get: if isOwner(userId) && isValidId(userId) && docId == 'info';
+        allow list: if false;
+
+        allow create: if isVerified() &&
+          isOwner(userId) &&
+          isValidId(userId) &&
+          docId == 'info' &&
+          isValidUserPrivateInfo(incoming()) &&
+          incoming().updatedAt == request.time &&
+          userExists(userId);
+
+        allow update: if isVerified() &&
+          isOwner(userId) &&
+          isValidId(userId) &&
+          docId == 'info' &&
+          isValidUserPrivateInfo(incoming()) &&
+          incoming().uid == existing().uid &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'email',
+            'phone',
+            'recoveryLocation',
+            'updatedAt'
+          ]) &&
+          userExists(userId);
+
+        allow delete: if false;
+      }
+    }
+
+    // Collection 2: /sessions/{sessionId} (Immutable Audit Logs)
+    match /sessions/{sessionId} {
+      allow get: if isSignedIn() && isValidId(sessionId) && existing().uid == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+
+      allow create: if isVerified() &&
+        isValidId(sessionId) &&
+        isValidAccessSession(incoming()) &&
+        incoming().createdAt == request.time &&
+        userExists(request.auth.uid);
+
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // Collection 3: /mathProgress/{userId} (Mathematics Arithmetic Node Tree Progress)
+    match /mathProgress/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isVerified() &&
+        isOwner(userId) &&
+        isValidId(userId) &&
+        isValidMathProgress(incoming()) &&
+        incoming().updatedAt == request.time &&
+        userExists(userId);
+
+      allow update: if isVerified() &&
+        isOwner(userId) &&
+        isValidId(userId) &&
+        isValidMathProgress(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().course == existing().course &&
+        incoming().updatedAt == request.time &&
+        (
+          // Action 1: Complete Lesson / Update Progress Stats
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'currentNodeIndex',
+            'xp',
+            'streak',
+            'gems',
+            'hearts',
+            'completedLessonsCount',
+            'updatedAt'
+          ])
+        ) &&
+        userExists(userId);
+
+      allow delete: if false;
+    }
+  }
+}
