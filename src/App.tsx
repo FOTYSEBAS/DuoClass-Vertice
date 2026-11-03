@@ -26,6 +26,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Download,
   Dumbbell,
   FastForward,
   FileText,
@@ -37,9 +38,12 @@ import {
   LogOut,
   MoreHorizontal,
   RotateCcw,
+  ShoppingBag,
   Sparkles,
   Star,
   Trophy,
+  Upload,
+  User as UserIcon,
   Volume2,
   VolumeX,
   X,
@@ -402,7 +406,62 @@ interface CourseProgressData {
   completedLessonsCount: number;
 }
 
-type BottomTab = 'aprender' | 'practica' | 'guia' | 'logros' | 'fuentes' | 'perfil';
+type BottomTab = 'aprender' | 'practica' | 'guia' | 'desafios' | 'tienda' | 'fuentes' | 'perfil';
+
+const LOCAL_STORAGE_KEY_PREFIX = 'duoclass_progress_v4_';
+
+function getLocalCourseProgress(courseId: CourseId): CourseProgressData {
+  try {
+    const raw = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}${courseId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        uid: 'local_user',
+        course: courseId,
+        currentNodeIndex: parsed.currentNodeIndex ?? 0,
+        xp: parsed.xp ?? 0,
+        streak: parsed.streak ?? 1,
+        gems: parsed.gems ?? 100,
+        hearts: parsed.hearts ?? 5,
+        completedLessonsCount: parsed.completedLessonsCount ?? 0,
+      };
+    }
+  } catch (err) {
+    console.warn('Error reading local course progress:', err);
+  }
+  return {
+    uid: 'local_user',
+    course: courseId,
+    currentNodeIndex: 0,
+    xp: 0,
+    streak: 1,
+    gems: 100,
+    hearts: 5,
+    completedLessonsCount: 0,
+  };
+}
+
+function saveLocalCourseProgress(courseId: CourseId, data: Partial<CourseProgressData>): CourseProgressData {
+  try {
+    const existing = getLocalCourseProgress(courseId);
+    const updated: CourseProgressData = { ...existing, ...data };
+    localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}${courseId}`, JSON.stringify(updated));
+    return updated;
+  } catch (err) {
+    console.warn('Error saving local course progress:', err);
+    return {
+      uid: 'local_user',
+      course: courseId,
+      currentNodeIndex: 0,
+      xp: 0,
+      streak: 1,
+      gems: 100,
+      hearts: 5,
+      completedLessonsCount: 0,
+      ...data,
+    };
+  }
+}
 
 function SourcesAndReferencesCard({ lang = 'es' }: { lang?: Language }) {
   const isEn = lang === 'en';
@@ -1702,8 +1761,10 @@ export default function App() {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Active course state: defaults to 'sociales' (new Social Sciences course: 5 Modules, 20 Sections)
-  const [activeCourse, setActiveCourse] = useState<CourseId>('sociales');
+  // Active course state: defaults to 'sociales' (or stored in localStorage)
+  const [activeCourse, setActiveCourse] = useState<CourseId>(() => {
+    return (localStorage.getItem('duoclass_active_course') as CourseId) || 'sociales';
+  });
   const [courseMenuLocation, setCourseMenuLocation] = useState<
     'none' | 'mobile' | 'desktop_right' | 'desktop_left'
   >('none');
@@ -1733,23 +1794,40 @@ export default function App() {
       ? PHYSICS_NODES
       : ARITHMETIC_NODES;
 
-  // Persistent Progress from Firestore (starts at 0 so first node is normal active green)
-  const [progress, setProgress] = useState<CourseProgressData>({
-    uid: '',
-    course: 'sociales',
-    currentNodeIndex: 0,
-    xp: 0,
-    streak: 1,
-    gems: 100,
-    hearts: 5,
-    completedLessonsCount: 0,
+  // Persistent Progress initialized directly from Local Storage
+  const [progress, setProgress] = useState<CourseProgressData>(() => {
+    return getLocalCourseProgress(activeCourse);
   });
 
-  // Navigation & UI state (shows 1 active module at a time to avoid clutter)
+  const [allCourseNodeIndices, setAllCourseNodeIndices] = useState<
+    Record<CourseId, number>
+  >(() => ({
+    sociales: getLocalCourseProgress('sociales').currentNodeIndex,
+    quimica: getLocalCourseProgress('quimica').currentNodeIndex,
+    fisica: getLocalCourseProgress('fisica').currentNodeIndex,
+    matematicas: getLocalCourseProgress('matematicas').currentNodeIndex,
+  }));
+
+  // Navigation & UI state
   const [activeTab, setActiveTab] = useState<BottomTab>('aprender');
   const [lang, setLang] = useState<'es' | 'en'>(() => {
     return (localStorage.getItem('app_lang') as 'es' | 'en') || 'es';
   });
+
+  const updateProgressState = (newFields: Partial<CourseProgressData>) => {
+    const updated = saveLocalCourseProgress(activeCourse, newFields);
+    setProgress(updated);
+    setAllCourseNodeIndices((prev) => ({
+      ...prev,
+      [activeCourse]: updated.currentNodeIndex,
+    }));
+    if (currentUser) {
+      updateDoc(doc(db, currentCourseCollection, currentUser.uid), {
+        ...newFields,
+        updatedAt: serverTimestamp(),
+      }).catch((err) => console.warn('Background sync omitted:', err));
+    }
+  };
 
   const handleChangeLang = async (newLang: Language) => {
     setLang(newLang);
@@ -1835,329 +1913,49 @@ export default function App() {
     }
   };
 
-  const [allCourseNodeIndices, setAllCourseNodeIndices] = useState<
-    Record<CourseId, number>
-  >({
-    sociales: 0,
-    quimica: 0,
-    fisica: 0,
-    matematicas: 0,
-  });
+
 
   // Switch between Ciencias Sociales, Química, Física, and Matemáticas cleanly
   const handleSwitchCourse = (nextCourse: CourseId) => {
     setCourseMenuLocation('none');
     if (nextCourse === activeCourse) return;
+    localStorage.setItem('duoclass_active_course', nextCourse);
     setSelectedNode(null);
     setLockedMessageNodeId(null);
     setGuideModalSection(null);
     setActiveLessonNode(null);
     setSelectedModuleFilter(1);
     setActiveCourse(nextCourse);
+    const loaded = getLocalCourseProgress(nextCourse);
+    setProgress(loaded);
   };
 
-  // Bootstrap user, mathProgress, physicsProgress, chemistryProgress, and socialesProgress in Firestore on sign-in
+  // Optional background auth observer (never blocks UI)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setAuthReady(true);
-      setAuthError(null);
-
-      if (!user) return;
-
-      const userDocRef = doc(db, 'users', user.uid);
-      const privateDocRef = doc(db, 'users', user.uid, 'private', 'info');
-      const mathDocRef = doc(db, 'mathProgress', user.uid);
-      const physicsDocRef = doc(db, 'physicsProgress', user.uid);
-      const chemistryDocRef = doc(db, 'chemistryProgress', user.uid);
-      const socialesDocRef = doc(db, 'socialesProgress', user.uid);
-
-      try {
-        const [
-          userSnap,
-          mathSnap,
-          physicsSnap,
-          chemistrySnap,
-          socialesSnap,
-        ] = await Promise.all([
-          getDoc(userDocRef),
-          getDoc(mathDocRef),
-          getDoc(physicsDocRef),
-          getDoc(chemistryDocRef),
-          getDoc(socialesDocRef),
-        ]);
-
-        const batch = writeBatch(db);
-        let needsCommit = false;
-
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          if (userData?.languagePreference === 'en' || userData?.languagePreference === 'es') {
-            setLang(userData.languagePreference);
-          }
-        } else {
-          needsCommit = true;
-          const safeDisplayName = sanitizeString(
-            user.displayName || user.email?.split('@')[0] || 'Estudiante',
-            VALIDATION_CONSTANTS.MAX_DISPLAY_NAME,
-            'Estudiante'
-          );
-          const safeEmail = sanitizeString(
-            user.email || 'estudiante@app.local',
-            VALIDATION_CONSTANTS.MAX_EMAIL,
-            'estudiante@app.local'
-          );
-
-          batch.set(userDocRef, {
-            uid: user.uid,
-            displayName: safeDisplayName,
-            jobTitle: 'Estudiante de Sociales, Química, Física y Matemáticas',
-            department: 'Ciencias Sociales, Exactas y Naturales',
-            organization: 'Academia Interactiva',
-            bio: '',
-            themePreference: 'dark',
-            notificationsEnabled: true,
-            languagePreference: lang,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
-
-          batch.set(privateDocRef, {
-            uid: user.uid,
-            email: safeEmail,
-            phone: '',
-            recoveryLocation: '',
-            updatedAt: serverTimestamp(),
-          });
-
-          const sessionId = generateSafeId('sess');
-          batch.set(doc(db, 'sessions', sessionId), {
-            uid: user.uid,
-            deviceLabel: detectDeviceSummary(),
-            actionType: 'inicio_sesion',
-            note: 'Inicio de sesión en Sociales, Química, Física y Matemáticas',
-            createdAt: serverTimestamp(),
-          });
-        }
-
-        if (!mathSnap.exists()) {
-          needsCommit = true;
-          batch.set(mathDocRef, {
-            uid: user.uid,
-            course: 'matematicas',
-            currentNodeIndex: 0,
-            xp: 0,
-            streak: 1,
-            gems: 100,
-            hearts: 5,
-            completedLessonsCount: 0,
-            updatedAt: serverTimestamp(),
-          });
-        }
-
-        if (!physicsSnap.exists()) {
-          needsCommit = true;
-          batch.set(physicsDocRef, {
-            uid: user.uid,
-            course: 'fisica',
-            currentNodeIndex: 0,
-            xp: 0,
-            streak: 1,
-            gems: 100,
-            hearts: 5,
-            completedLessonsCount: 0,
-            updatedAt: serverTimestamp(),
-          });
-        }
-
-        if (!chemistrySnap.exists()) {
-          needsCommit = true;
-          batch.set(chemistryDocRef, {
-            uid: user.uid,
-            course: 'quimica',
-            currentNodeIndex: 0,
-            xp: 0,
-            streak: 1,
-            gems: 100,
-            hearts: 5,
-            completedLessonsCount: 0,
-            updatedAt: serverTimestamp(),
-          });
-        }
-
-        if (!socialesSnap.exists()) {
-          needsCommit = true;
-          batch.set(socialesDocRef, {
-            uid: user.uid,
-            course: 'sociales',
-            currentNodeIndex: 0,
-            xp: 0,
-            streak: 1,
-            gems: 100,
-            hearts: 5,
-            completedLessonsCount: 0,
-            updatedAt: serverTimestamp(),
-          });
-        }
-
-        if (needsCommit) {
-          await batch.commit();
-        }
-
-        const extractNodeIndex = (snap: typeof mathSnap) =>
-          snap.exists() ? ((snap.data() as CourseProgressData).currentNodeIndex ?? 0) : 0;
-
-        const indices: Record<CourseId, number> = {
-          matematicas: extractNodeIndex(mathSnap),
-          fisica: extractNodeIndex(physicsSnap),
-          quimica: extractNodeIndex(chemistrySnap),
-          sociales: extractNodeIndex(socialesSnap),
-        };
-        setAllCourseNodeIndices(indices);
-      } catch (error) {
-        handleFirestoreError(error, OperationType.WRITE, `socialesProgress/${user.uid}`);
-      }
     });
-
     return () => unsubscribe();
   }, []);
 
-  // Real-time listener for the currently active course
-  useEffect(() => {
-    if (!authReady || !currentUser) return;
-
-    const uid = currentUser.uid;
-    const collectionName =
-      activeCourse === 'sociales'
-        ? 'socialesProgress'
-        : activeCourse === 'quimica'
-        ? 'chemistryProgress'
-        : activeCourse === 'fisica'
-        ? 'physicsProgress'
-        : 'mathProgress';
-    const nodesList =
-      activeCourse === 'sociales'
-        ? SOCIALES_NODES
-        : activeCourse === 'quimica'
-        ? CHEMISTRY_NODES
-        : activeCourse === 'fisica'
-        ? PHYSICS_NODES
-        : ARITHMETIC_NODES;
-    const sectionsList =
-      activeCourse === 'sociales'
-        ? SOCIALES_SECTIONS
-        : activeCourse === 'quimica'
-        ? CHEMISTRY_SECTIONS
-        : activeCourse === 'fisica'
-        ? PHYSICS_SECTIONS
-        : ARITHMETIC_SECTIONS;
-
-    const unsub = onSnapshot(
-      doc(db, collectionName, uid),
-      (snap) => {
-        if (snap.exists()) {
-          const data = snap.data() as CourseProgressData;
-          setProgress(data);
-          setAllCourseNodeIndices((prev) => ({
-            ...prev,
-            [activeCourse]: data.currentNodeIndex,
-          }));
-
-          const syncKey = `${activeCourse}:${data.currentNodeIndex}`;
-          if (lastSyncedCourseNodeRef.current !== syncKey) {
-            lastSyncedCourseNodeRef.current = syncKey;
-            const currentNode =
-              nodesList[Math.min(data.currentNodeIndex, nodesList.length - 1)];
-            if (currentNode) {
-              const sec = sectionsList.find(
-                (s) => s.id === currentNode.sectionId
-              );
-              const modId = (sec?.moduleId ?? 1) as ModuleId;
-              setSelectedModuleFilter(modId);
-            }
-          }
-        }
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, `${collectionName}/${uid}`);
-      }
-    );
-
-    return () => unsub();
-  }, [authReady, currentUser, activeCourse]);
-
-  const handleGoogleSignIn = async () => {
-    setIsSigningIn(true);
-    setAuthError(null);
-    try {
-      const credential = await signInWithPopup(auth, googleProvider);
-      const user = credential.user;
-      const userSnap = await getDoc(doc(db, 'users', user.uid));
-      if (userSnap.exists()) {
-        const sessionId = generateSafeId('sess');
-        await setDoc(doc(db, 'sessions', sessionId), {
-          uid: user.uid,
-          deviceLabel: detectDeviceSummary(),
-          actionType: 'inicio_sesion',
-          note: 'Acceso a Química, Física y Matemáticas',
-          createdAt: serverTimestamp(),
-        });
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '';
-      if (msg.includes('popup-closed-by-user')) {
-        setAuthError(
-          lang === 'en'
-            ? 'The sign-in window was closed before completing.'
-            : 'Se cerró la ventana antes de completar el inicio de sesión.'
-        );
-      } else {
-        setAuthError(
-          lang === 'en'
-            ? 'Could not sign in with Google.'
-            : 'No se pudo iniciar sesión con Google.'
-        );
-      }
-    } finally {
-      setIsSigningIn(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   // Reset all progress of active course to 0 ("Reiniciar progreso")
-  const handleResetProgress = async () => {
-    if (!currentUser) return;
-    try {
-      await updateDoc(doc(db, currentCourseCollection, currentUser.uid), {
-        currentNodeIndex: 0,
-        xp: 0,
-        completedLessonsCount: 0,
-        hearts: 5,
-        updatedAt: serverTimestamp(),
-      });
-      setSelectedNode(null);
-      setSelectedModuleFilter(1);
-      setActiveTab('aprender');
-    } catch (error) {
-      handleFirestoreError(
-        error,
-        OperationType.UPDATE,
-        `${currentCourseCollection}/${currentUser.uid}`
-      );
-    }
+  const handleResetProgress = () => {
+    updateProgressState({
+      currentNodeIndex: 0,
+      xp: 0,
+      completedLessonsCount: 0,
+      hearts: 5,
+    });
+    setSelectedNode(null);
+    setSelectedModuleFilter(1);
+    setActiveTab('aprender');
   };
 
   // Start a regular lesson from a node
   const startLesson = (node: ArithmeticNode) => {
     if (progress.hearts <= 0) {
-      setActiveTab('perfil');
+      setActiveTab('tienda');
       return;
     }
     setSelectedNode(null);
@@ -2174,7 +1972,7 @@ export default function App() {
   const startSkipExam = (section: ArithmeticSection) => {
     if (!section.skipExamQuestions || section.skipExamQuestions.length === 0) return;
     if (progress.hearts <= 0) {
-      setActiveTab('perfil');
+      setActiveTab('tienda');
       return;
     }
     const sectionNodes = currentCourseNodes.filter((n) => n.sectionId === section.id);
@@ -2211,8 +2009,8 @@ export default function App() {
   };
 
   // Verify selected or typed answer in active lesson
-  const handleCheckAnswer = async () => {
-    if (!activeLessonNode || !selectedOption || !currentUser) return;
+  const handleCheckAnswer = () => {
+    if (!activeLessonNode || !selectedOption) return;
     const currentQuestion = activeLessonNode.questions[questionIndex];
 
     const isMatch =
@@ -2229,28 +2027,17 @@ export default function App() {
       setCurrentStreakInLesson(0);
       playWrongSound();
       const nextHearts = Math.max(0, progress.hearts - 1);
-      try {
-        await updateDoc(doc(db, currentCourseCollection, currentUser.uid), {
-          hearts: nextHearts,
-          updatedAt: serverTimestamp(),
-        });
-      } catch (error) {
-        handleFirestoreError(
-          error,
-          OperationType.UPDATE,
-          `${currentCourseCollection}/${currentUser.uid}`
-        );
-      }
+      updateProgressState({ hearts: nextHearts });
     }
   };
 
-  // Advance to next question or finish lesson (including Skip Exam unlocking!)
-  const handleContinueLesson = async () => {
-    if (!activeLessonNode || !currentUser) return;
+  // Advance to next question or finish lesson
+  const handleContinueLesson = () => {
+    if (!activeLessonNode) return;
 
     if (progress.hearts <= 0 && checkStatus === 'wrong') {
       setActiveLessonNode(null);
-      setActiveTab('perfil');
+      setActiveTab('tienda');
       return;
     }
 
@@ -2277,7 +2064,6 @@ export default function App() {
         activeLessonNode.isSkipExam &&
         typeof activeLessonNode.targetUnlockNodeIndex === 'number'
       ) {
-        // Jumping ahead via Section Placement Exam!
         nextNodeIndex = Math.min(
           currentCourseNodes.length,
           Math.max(progress.currentNodeIndex, activeLessonNode.targetUnlockNodeIndex)
@@ -2298,54 +2084,38 @@ export default function App() {
       const nextLevelTier = Math.floor((progress.xp + earnedXp) / 100);
       const reachedNewXpLevel = nextLevelTier > previousLevelTier;
 
-      try {
-        await updateDoc(doc(db, currentCourseCollection, currentUser.uid), {
-          currentNodeIndex: nextNodeIndex,
-          xp: Math.min(1000000, progress.xp + earnedXp),
-          gems: Math.min(1000000, progress.gems + earnedGems),
-          completedLessonsCount: Math.min(100000, progress.completedLessonsCount + 1),
-          updatedAt: serverTimestamp(),
-        });
-        recordRecentLessonCompletion(currentUser.uid, {
-          course: activeCourse,
-          node: activeLessonNode,
-          mistakesCount: mistakesInLesson,
-          xpEarned: earnedXp,
-        });
-        setLessonCompleted(true);
-        if (unlockedNewLevel || reachedNewXpLevel) {
-          playLevelUpSound();
-        } else {
-          playLessonCompleteSound();
-        }
-      } catch (error) {
-        handleFirestoreError(
-          error,
-          OperationType.UPDATE,
-          `${currentCourseCollection}/${currentUser.uid}`
-        );
+      recordRecentLessonCompletion('local_user', {
+        course: activeCourse,
+        node: activeLessonNode,
+        mistakesCount: mistakesInLesson,
+        xpEarned: earnedXp,
+      });
+
+      updateProgressState({
+        currentNodeIndex: nextNodeIndex,
+        xp: Math.min(1000000, progress.xp + earnedXp),
+        gems: Math.min(1000000, progress.gems + earnedGems),
+        completedLessonsCount: Math.min(100000, progress.completedLessonsCount + 1),
+      });
+
+      setLessonCompleted(true);
+      if (unlockedNewLevel || reachedNewXpLevel) {
+        playLevelUpSound();
+      } else {
+        playLessonCompleteSound();
       }
     }
   };
 
   // Refill hearts using gems in shop
-  const handleRefillHearts = async () => {
-    if (!currentUser || progress.hearts >= 5) return;
+  const handleRefillHearts = () => {
+    if (progress.hearts >= 5) return;
     const gemCost = 20;
     const nextGems = progress.gems >= gemCost ? progress.gems - gemCost : progress.gems;
-    try {
-      await updateDoc(doc(db, currentCourseCollection, currentUser.uid), {
-        hearts: 5,
-        gems: nextGems,
-        updatedAt: serverTimestamp(),
-      });
-    } catch (error) {
-      handleFirestoreError(
-        error,
-        OperationType.UPDATE,
-        `${currentCourseCollection}/${currentUser.uid}`
-      );
-    }
+    updateProgressState({
+      hearts: 5,
+      gems: nextGems,
+    });
   };
 
   // Generate new quick mental calculation question
@@ -2432,14 +2202,7 @@ export default function App() {
   // ============================================================================
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 1. Unauthenticated Login screen: Enter signs in
-      if (!currentUser) {
-        if (e.key === 'Enter' && !isSigningIn) {
-          e.preventDefault();
-          handleGoogleSignIn();
-        }
-        return;
-      }
+
 
       // 2. Inside Active Lesson or Skip Exam
       if (activeLessonNode) {
@@ -2548,7 +2311,7 @@ export default function App() {
         return;
       }
 
-      // Switch tabs with keys 1..6
+      // Switch tabs with keys 1..7
       if (e.key === '1') {
         e.preventDefault();
         setActiveTab('aprender');
@@ -2566,15 +2329,20 @@ export default function App() {
       }
       if (e.key === '4') {
         e.preventDefault();
-        setActiveTab('logros');
+        setActiveTab('desafios');
         return;
       }
       if (e.key === '5') {
         e.preventDefault();
-        setActiveTab('fuentes');
+        setActiveTab('tienda');
         return;
       }
       if (e.key === '6') {
+        e.preventDefault();
+        setActiveTab('fuentes');
+        return;
+      }
+      if (e.key === '7') {
         e.preventDefault();
         setActiveTab('perfil');
         return;
@@ -2685,53 +2453,7 @@ export default function App() {
     return <div className="min-h-screen bg-black" />;
   }
 
-  // ============================================================================
-  // 1. UNAUTHENTICATED VIEW: PURE BLACK LOGIN (RESPONSIVE MOBILE & PC)
-  // ============================================================================
-  if (!currentUser) {
-    return (
-      <main className="min-h-screen w-full bg-black text-white flex items-center justify-center p-6">
-        <div className="w-full max-w-sm sm:max-w-md space-y-6 bg-[#0A0E11] sm:border-2 sm:border-[#1C272D] sm:p-8 sm:rounded-3xl">
-          <div className="space-y-2 text-center">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-[#00CD9C] border-b-4 border-[#00A37C] flex items-center justify-center text-2xl font-extrabold font-mono text-black mb-4">
-              ΔH°
-            </div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              {getTranslation(lang, 'loginTitle')}
-            </h1>
-            <p className="text-sm text-neutral-400">
-              {getTranslation(lang, 'loginSub')}
-            </p>
-          </div>
 
-          {authError && (
-            <div
-              role="alert"
-              className="flex items-center gap-2.5 p-3 rounded-xl bg-neutral-950 border border-neutral-800 text-xs text-[#FF4B4B]"
-            >
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{authError}</span>
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={isSigningIn}
-            className="w-full flex items-center justify-center gap-3 px-5 py-3.5 text-sm font-bold text-black bg-[#58CC02] hover:bg-[#61E002] border-b-4 border-[#46A302] active:border-b-0 active:translate-y-1 rounded-2xl transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
-          >
-            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81Z"
-              />
-            </svg>
-            <span>{isSigningIn ? getTranslation(lang, 'connecting') : getTranslation(lang, 'googleSignInBtn')}</span>
-          </button>
-        </div>
-      </main>
-    );
-  }
 
   // ============================================================================
   // 2. INTERACTIVE LESSON & SECTION SKIP EXAM SCREEN (FULL KEYBOARD CONTROL)
@@ -3204,44 +2926,51 @@ export default function App() {
     {
       id: 'aprender',
       keyNum: '1',
-      label: getTranslation(lang, 'tabLearn').toUpperCase(),
-      icon: <Home className="w-6 h-6 shrink-0" />,
-      inactiveColor: 'text-neutral-400',
+      label: (lang === 'es' ? 'Aprender' : 'Learn').toUpperCase(),
+      icon: <Home className="w-5 h-5 shrink-0" />,
+      inactiveColor: 'text-[#1CB0F6]',
     },
     {
       id: 'practica',
       keyNum: '2',
-      label: getTranslation(lang, 'tabPractice').toUpperCase(),
-      icon: <Dumbbell className="w-6 h-6 shrink-0" />,
+      label: (lang === 'es' ? 'Práctica' : 'Practice').toUpperCase(),
+      icon: <Dumbbell className="w-5 h-5 shrink-0" />,
       inactiveColor: 'text-[#1CB0F6]',
     },
     {
       id: 'guia',
       keyNum: '3',
-      label: getTranslation(lang, 'tabGuide').toUpperCase(),
-      icon: <BookOpen className="w-6 h-6 shrink-0" />,
+      label: (lang === 'es' ? 'Guía' : 'Guide').toUpperCase(),
+      icon: <BookOpen className="w-5 h-5 shrink-0" />,
       inactiveColor: 'text-[#CE82FF]',
     },
     {
-      id: 'logros',
+      id: 'desafios',
       keyNum: '4',
-      label: getTranslation(lang, 'tabAchievements').toUpperCase(),
-      icon: <Trophy className="w-6 h-6 shrink-0" />,
-      inactiveColor: 'text-[#FFC800]',
+      label: (lang === 'es' ? 'Desafíos' : 'Quests').toUpperCase(),
+      icon: <Flame className="w-5 h-5 shrink-0" />,
+      inactiveColor: 'text-[#FF9600]',
+    },
+    {
+      id: 'tienda',
+      keyNum: '5',
+      label: (lang === 'es' ? 'Tienda' : 'Shop').toUpperCase(),
+      icon: <ShoppingBag className="w-5 h-5 shrink-0" />,
+      inactiveColor: 'text-[#FF4B4B]',
     },
     {
       id: 'fuentes',
-      keyNum: '5',
-      label: getTranslation(lang, 'tabSources').toUpperCase(),
-      icon: <FileText className="w-6 h-6 shrink-0" />,
-      inactiveColor: 'text-[#1CB0F6]',
+      keyNum: '6',
+      label: (lang === 'es' ? 'Fuentes' : 'Sources').toUpperCase(),
+      icon: <FileText className="w-5 h-5 shrink-0" />,
+      inactiveColor: 'text-[#00CD9C]',
     },
     {
       id: 'perfil',
-      keyNum: '6',
-      label: getTranslation(lang, 'tabProfile').toUpperCase(),
-      icon: <MoreHorizontal className="w-6 h-6 shrink-0" />,
-      inactiveColor: 'text-[#CE82FF]',
+      keyNum: '7',
+      label: (lang === 'es' ? 'Perfil' : 'Profile').toUpperCase(),
+      icon: <UserIcon className="w-5 h-5 shrink-0" />,
+      inactiveColor: 'text-[#58CC02]',
     },
   ];
 
@@ -3499,24 +3228,16 @@ export default function App() {
           </div>
         </div>
 
-        {/* Bottom User Summary & Sign Out on Desktop */}
-        <div className="pt-4 border-t-2 border-[#1C272D] space-y-3 px-2">
+        {/* Bottom Local User Summary on Desktop */}
+        <div className="pt-4 border-t-2 border-[#1C272D] space-y-2 px-2">
           <div className="truncate">
-            <p className="text-xs font-extrabold text-white truncate">
-              {currentUser.displayName || (lang === 'es' ? 'Estudiante' : 'Student')}
+            <p className="text-xs font-extrabold text-[#58CC02] truncate">
+              {lang === 'es' ? 'Estudiante · Guardado Local' : 'Student · Local Save'}
             </p>
-            <p className="text-[11px] font-mono text-neutral-500 truncate">
-              {currentUser.email}
+            <p className="text-[10px] font-mono text-neutral-400 truncate">
+              {lang === 'es' ? 'Sin inicio de sesión' : 'No login required'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="w-full py-2.5 px-3 rounded-xl bg-[#131F24] hover:bg-[#2D1215] border border-[#26353D] hover:border-[#FF4B4B]/40 text-xs font-extrabold text-neutral-400 hover:text-[#FF4B4B] flex items-center justify-center gap-2 transition-colors cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>{getTranslation(lang, 'signOutBtn')}</span>
-          </button>
         </div>
       </aside>
 
@@ -4257,30 +3978,24 @@ export default function App() {
             )}
 
             {/* ============================================================== */}
-            {/* TAB 4: LOGROS, DESAFÍOS DEL DÍA Y POTENCIADORES                */}
+            {/* TAB 4: DESAFÍOS DEL DÍA Y META DIARIA                          */}
             {/* ============================================================== */}
-            {activeTab === 'logros' && (
+            {activeTab === 'desafios' && (
               <div className="space-y-6">
-                <div className="rounded-2xl bg-[#FFC800] border-b-4 border-[#D9A300] p-5 text-black flex items-center justify-between">
+                <div className="rounded-2xl bg-[#FF9600] border-b-4 border-[#CC7800] p-5 text-black flex items-center justify-between">
                   <div className="space-y-0.5">
                     <h2 className="font-display text-lg sm:text-xl font-extrabold">
-                      {activeCourse === 'sociales'
-                        ? (lang === 'es' ? 'Dominio de Ciencias Sociales' : 'Mastery of Social Sciences')
-                        : activeCourse === 'quimica'
-                        ? (lang === 'es' ? 'Dominio de Química' : 'Mastery of Chemistry')
-                        : activeCourse === 'fisica'
-                        ? (lang === 'es' ? 'Dominio de Física' : 'Mastery of Physics')
-                        : (lang === 'es' ? 'Dominio de Matemáticas' : 'Mastery of Mathematics')}
+                      {lang === 'es' ? 'Desafíos y Meta Diaria' : 'Quests & Daily Goal'}
                     </h2>
                     <p className="text-xs sm:text-sm font-semibold text-black/80">
-                      {progress.currentNodeIndex} {lang === 'es' ? 'de' : 'of'} {currentCourseNodes.length} {lang === 'es' ? 'nodos completados en oro (' : 'gold nodes completed ('}
-                      {activeCourse === 'sociales' ? (lang === 'es' ? '5 Módulos · 25 Secciones' : '5 Modules · 25 Sections') : (lang === 'es' ? 'Módulos 1, 2 y 3' : 'Modules 1, 2 and 3')})
+                      {lang === 'es'
+                        ? 'Completa retos diarios para acumular más XP y racha'
+                        : 'Complete daily quests to accumulate more XP and streak'}
                     </p>
                   </div>
-                  <Trophy className="w-10 h-10 stroke-[2.2]" />
+                  <Flame className="w-10 h-10 fill-black stroke-black" />
                 </div>
 
-                {/* Desafíos Aleatorios del Día (image_628b9824.png) */}
                 <DailyRandomChallengesCard
                   seedOffset={dailyChallengeSeedOffset}
                   onRandomizeSeed={() =>
@@ -4296,132 +4011,29 @@ export default function App() {
                   lang={lang}
                 />
 
-                {/* Potenciadores: Protector de racha 2/2 EQUIPADOS (image_045d50ab.png) */}
-                <PotenciadoresStreakFreezeSection
-                  equippedCount={streakFreezesEquipped}
-                  maxCount={2}
-                  onToggleOrRefill={() =>
-                    setStreakFreezesEquipped((prev) => (prev >= 2 ? 1 : 2))
-                  }
-                  lang={lang}
-                />
-
-                {/* Daily Goal Ring Chart inside Logros */}
                 <DailyGoalRingChart xp={progress.xp} goal={DAILY_XP_GOAL} lang={lang} />
-
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-4 sm:p-5 space-y-1">
-                    <span className="text-xs text-neutral-400">
-                      {lang === 'es' ? 'Experiencia total' : 'Total XP'}
-                    </span>
-                    <p className="font-mono text-2xl sm:text-3xl font-extrabold text-[#FFC800] tabular-nums">
-                      {progress.xp} XP
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-4 sm:p-5 space-y-1">
-                    <span className="text-xs text-neutral-400">
-                      {lang === 'es' ? 'Lecciones superadas' : 'Completed lessons'}
-                    </span>
-                    <p className="font-mono text-2xl sm:text-3xl font-extrabold text-[#58CC02] tabular-nums">
-                      {progress.completedLessonsCount}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-3">
-                  <h3 className="font-display text-sm sm:text-base font-extrabold text-white">
-                    {getTranslation(lang, 'nodesStatusHeader')} (
-                    {activeCourse === 'sociales'
-                      ? (lang === 'es' ? 'Módulos 1 a 5' : 'Modules 1 to 5')
-                      : (lang === 'es' ? `1 Módulo por sección (${currentCourseSections.length} Módulos)` : `1 Module per section (${currentCourseSections.length} Modules)`)}
-                    )
-                  </h3>
-                  <div className="space-y-2">
-                    {currentCourseNodes.map((node) => {
-                      const done = node.index < progress.currentNodeIndex;
-                      const active = node.index === progress.currentNodeIndex;
-                      const sec = currentCourseSections.find((s) => s.id === node.sectionId);
-                      const modId = sec?.moduleId ?? 1;
-                      return (
-                        <div
-                          key={node.id}
-                          className="flex items-center justify-between p-3 rounded-xl bg-[#0A0E11] border border-[#1C272D]"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span
-                              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold ${
-                                done
-                                  ? 'bg-[#FFC800] text-black'
-                                  : active
-                                  ? 'bg-[#58CC02] text-black'
-                                  : 'bg-[#202F36] text-neutral-500'
-                              }`}
-                            >
-                              {done ? '✓' : node.index + 1}
-                            </span>
-                            <div>
-                              <p className="text-xs sm:text-sm font-bold text-white">
-                                {node.title}{' '}
-                                <span className="text-[10px] font-mono text-neutral-400">
-                                  (M{modId})
-                                </span>
-                              </p>
-                              <p className="text-[11px] sm:text-xs text-neutral-400">{node.subtitle}</p>
-                            </div>
-                          </div>
-                          <span className="font-mono text-xs text-neutral-400 tabular-nums">
-                            +{node.xpReward} XP
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
               </div>
             )}
 
             {/* ============================================================== */}
-            {/* TAB 5: FUENTES Y REFERENCIAS ACADÉMICAS OFICIALES              */}
+            {/* TAB 4: DESAFÍOS DEL DÍA Y META DIARIA                          */}
             {/* ============================================================== */}
-            {activeTab === 'fuentes' && (
-              <SourcesAndReferencesCard lang={lang} />
-            )}
-
-            {/* ============================================================== */}
-            {/* TAB 6: PERFIL, POTENCIADORES, VIDAS, REINICIAR Y SESIÓN        */}
-            {/* ============================================================== */}
-            {activeTab === 'perfil' && (
+            {activeTab === 'desafios' && (
               <div className="space-y-6">
-                <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#58CC02]">
-                    {getTranslation(lang, 'verifiedStudent')}
-                  </p>
-                  <h2 className="font-display text-xl font-extrabold text-white truncate">
-                    {currentUser.displayName || (lang === 'es' ? 'Estudiante' : 'Student')}
-                  </h2>
-                  <p className="text-xs font-mono text-neutral-400 truncate">
-                    {currentUser.email}
-                  </p>
+                <div className="rounded-2xl bg-[#FF9600] border-b-4 border-[#CC7800] p-5 text-black flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h2 className="font-display text-lg sm:text-xl font-extrabold">
+                      {lang === 'es' ? 'Desafíos y Meta Diaria' : 'Quests & Daily Goal'}
+                    </h2>
+                    <p className="text-xs sm:text-sm font-semibold text-black/80">
+                      {lang === 'es'
+                        ? 'Completa retos diarios para acumular más XP y racha'
+                        : 'Complete daily quests to accumulate more XP and streak'}
+                    </p>
+                  </div>
+                  <Flame className="w-10 h-10 fill-black stroke-black" />
                 </div>
 
-                {/* Historial Reciente: Últimas 5 lecciones completadas con fecha y puntaje */}
-                <RecentHistoryCard
-                  items={recentFiveLessons}
-                  onReplayLesson={handleReplayRecentLesson}
-                  lang={lang}
-                />
-
-                {/* Potenciadores: Protector de racha 2 / 2 EQUIPADOS (image_045d50ab.png) */}
-                <PotenciadoresStreakFreezeSection
-                  equippedCount={streakFreezesEquipped}
-                  maxCount={2}
-                  onToggleOrRefill={() =>
-                    setStreakFreezesEquipped((prev) => (prev >= 2 ? 1 : 2))
-                  }
-                  lang={lang}
-                />
-
-                {/* Desafíos del día inside Perfil as well */}
                 <DailyRandomChallengesCard
                   seedOffset={dailyChallengeSeedOffset}
                   onRandomizeSeed={() =>
@@ -4436,23 +4048,46 @@ export default function App() {
                   }
                   lang={lang}
                 />
+
+                <DailyGoalRingChart xp={progress.xp} goal={DAILY_XP_GOAL} lang={lang} />
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* TAB 5: TIENDA DE VIDAS Y POTENCIADORES                         */}
+            {/* ============================================================== */}
+            {activeTab === 'tienda' && (
+              <div className="space-y-6">
+                <div className="rounded-2xl bg-[#FF4B4B] border-b-4 border-[#CC3B3B] p-5 text-white flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h2 className="font-display text-lg sm:text-xl font-extrabold">
+                      {lang === 'es' ? 'Tienda y Estación de Vidas' : 'Shop & Heart Station'}
+                    </h2>
+                    <p className="text-xs sm:text-sm font-semibold text-white/90">
+                      {lang === 'es'
+                        ? 'Recarga tus vidas usando tus Gemas acumuladas'
+                        : 'Refill your hearts using your accumulated Gems'}
+                    </p>
+                  </div>
+                  <Heart className="w-10 h-10 fill-white text-white" />
+                </div>
 
                 {/* Heart Refill Station */}
                 <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <h3 className="font-display text-sm font-extrabold text-white">
+                      <h3 className="font-display text-base font-extrabold text-white">
                         {getTranslation(lang, 'heartStation')}
                       </h3>
                       <p className="text-xs text-neutral-400">
                         {getTranslation(lang, 'heartsAvailable', { count: progress.hearts })}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       {[1, 2, 3, 4, 5].map((i) => (
                         <Heart
                           key={i}
-                          className={`w-5 h-5 ${
+                          className={`w-6 h-6 ${
                             i <= progress.hearts
                               ? 'fill-[#FF4B4B] text-[#FF4B4B]'
                               : 'text-[#26353D]'
@@ -4466,7 +4101,7 @@ export default function App() {
                     type="button"
                     disabled={progress.hearts >= 5}
                     onClick={handleRefillHearts}
-                    className={`w-full py-3 rounded-xl font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all ${
+                    className={`w-full py-3.5 rounded-2xl font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition-all ${
                       progress.hearts < 5
                         ? 'bg-[#1CB0F6] hover:bg-[#35B9F8] border-b-4 border-[#1185BA] text-black cursor-pointer'
                         : 'bg-[#202F36] text-neutral-500 cursor-not-allowed'
@@ -4476,12 +4111,76 @@ export default function App() {
                     <span>
                       {progress.hearts >= 5
                         ? getTranslation(lang, 'fullHeartsBtn')
-                        : getTranslation(lang, 'refillHeartsBtn')}
+                        : `${getTranslation(lang, 'refillHeartsBtn')} (20 Gemas)`}
                     </span>
                   </button>
                 </div>
 
-                {/* Idioma de la Aplicación (Español / English) en Perfil con Menú Desplegable Global */}
+                <PotenciadoresStreakFreezeSection
+                  equippedCount={streakFreezesEquipped}
+                  maxCount={2}
+                  onToggleOrRefill={() =>
+                    setStreakFreezesEquipped((prev) => (prev >= 2 ? 1 : 2))
+                  }
+                  lang={lang}
+                />
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* TAB 6: FUENTES Y REFERENCIAS ACADÉMICAS OFICIALES              */}
+            {/* ============================================================== */}
+            {activeTab === 'fuentes' && (
+              <SourcesAndReferencesCard lang={lang} />
+            )}
+
+            {/* ============================================================== */}
+            {/* TAB 7: PERFIL, HISTORIAL Y AJUSTES LOCALES                     */}
+            {/* ============================================================== */}
+            {activeTab === 'perfil' && (
+              <div className="space-y-6">
+                <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#58CC02]">
+                      {lang === 'es' ? 'Guardado Local Activo' : 'Local Storage Active'}
+                    </p>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#58CC02]/15 text-[#58CC02] text-[10px] font-mono font-bold">
+                      Offline Ready
+                    </span>
+                  </div>
+                  <h2 className="font-display text-xl font-extrabold text-white truncate">
+                    {lang === 'es' ? 'Tu Progreso Local' : 'Your Local Progress'}
+                  </h2>
+                  <p className="text-xs font-mono text-neutral-400 truncate">
+                    {lang === 'es'
+                      ? 'Sin inicio de sesión requerido · Tus datos se guardan directamente en este navegador'
+                      : 'No sign-in required · Your data is saved directly in this browser'}
+                  </p>
+                </div>
+
+                {/* Resumen por Módulo */}
+                <ModuleSummaryCard
+                  activeCourse={activeCourse}
+                  sections={currentCourseSections}
+                  nodes={currentCourseNodes}
+                  currentNodeIndex={progress.currentNodeIndex}
+                  totalUserXp={progress.xp}
+                  selectedModuleFilter={selectedModuleFilter}
+                  onSelectModule={(mod) => {
+                    setSelectedModuleFilter(mod);
+                    setActiveTab('aprender');
+                  }}
+                  lang={lang}
+                />
+
+                {/* Historial Reciente: Últimas 5 lecciones completadas */}
+                <RecentHistoryCard
+                  items={recentFiveLessons}
+                  onReplayLesson={handleReplayRecentLesson}
+                  lang={lang}
+                />
+
+                {/* Idioma de la Aplicación (Español / English) */}
                 <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="space-y-0.5">
@@ -4497,15 +4196,14 @@ export default function App() {
                     </span>
                   </div>
 
-                  {/* Dropdown Menu & Quick Buttons saving to Firestore */}
                   <div className="space-y-3 pt-1">
                     <select
                       value={lang}
                       onChange={(e) => handleChangeLang(e.target.value as Language)}
                       className="w-full h-11 px-3.5 rounded-xl bg-[#0A0E11] border-2 border-[#1CB0F6] text-xs font-display font-extrabold text-white focus:outline-none focus:ring-2 focus:ring-[#58CC02] cursor-pointer"
                     >
-                      <option value="es">🇪🇸 Español (Spanish - Global)</option>
-                      <option value="en">🇬🇧 English (Global)</option>
+                      <option value="es">🇪🇸 Español (Spanish)</option>
+                      <option value="en">🇬🇧 English</option>
                     </select>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -4608,42 +4306,9 @@ export default function App() {
                       className="w-full h-2 rounded-lg appearance-none bg-[#202F36] accent-[#1CB0F6] cursor-pointer"
                     />
                   </div>
-
-                  {/* Botones de prueba rápida de sonidos sutiles */}
-                  <div className="pt-1">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2">
-                      {getTranslation(lang, 'testSubtleSounds')}
-                    </p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        disabled={audioMuted || audioVolume === 0}
-                        onClick={() => playCorrectSound()}
-                        className="py-2 px-2.5 rounded-xl bg-[#202F36] hover:bg-[#2A3E47] disabled:opacity-40 disabled:cursor-not-allowed border border-[#26353D] text-[11px] font-extrabold text-[#58CC02] transition-colors cursor-pointer"
-                      >
-                        {getTranslation(lang, 'answerSound')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={audioMuted || audioVolume === 0}
-                        onClick={() => playLevelUpSound()}
-                        className="py-2 px-2.5 rounded-xl bg-[#202F36] hover:bg-[#2A3E47] disabled:opacity-40 disabled:cursor-not-allowed border border-[#26353D] text-[11px] font-extrabold text-[#FFC800] transition-colors cursor-pointer"
-                      >
-                        {getTranslation(lang, 'levelUpSound')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={audioMuted || audioVolume === 0}
-                        onClick={() => playLessonCompleteSound()}
-                        className="py-2 px-2.5 rounded-xl bg-[#202F36] hover:bg-[#2A3E47] disabled:opacity-40 disabled:cursor-not-allowed border border-[#26353D] text-[11px] font-extrabold text-[#1CB0F6] transition-colors cursor-pointer"
-                      >
-                        {getTranslation(lang, 'lessonSound')}
-                      </button>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Reiniciar progreso & Cerrar sesión */}
+                {/* Reiniciar progreso local */}
                 <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-3">
                   <button
                     type="button"
@@ -4654,15 +4319,6 @@ export default function App() {
                     <span>
                       {getTranslation(lang, 'resetProgressBtn')} ({getCourseTitle(activeCourse, lang)})
                     </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleSignOut}
-                    className="w-full py-3 rounded-xl bg-[#2D1215] hover:bg-[#3D181C] border-b-4 border-[#1F0B0D] text-xs font-extrabold text-[#FF4B4B] flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>{getTranslation(lang, 'signOutBtn')}</span>
                   </button>
                 </div>
               </div>
