@@ -290,7 +290,7 @@ export const TRANSLATIONS = {
     unlockedSubtitle: 'You have directly unlocked',
     totalExpLabel: 'Total XP',
     accuracyLabel: 'Accuracy',
-    gemsLabel: 'Gemas',
+    gemsLabel: 'Gems',
     returnTreeHint: 'Press Enter or Esc to return to tree',
 
     // Quick Practice (Tab 2)

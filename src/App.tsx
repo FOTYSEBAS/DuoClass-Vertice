@@ -1135,7 +1135,7 @@ function ModuleSummaryCard({
           id: sec.id,
           name: isEn ? `Module ${sec.id}` : `Módulo ${sec.id}`,
           shortName: `M${sec.id}`,
-          subtitle: sec.title.replace(/^Sección\s+\d+\s*·\s*/i, ''),
+          subtitle: sec.title.replace(/^(Sección|Section)\s+\d+\s*·\s*/i, ''),
           color: sec.colorHex,
         }));
 
@@ -1199,7 +1199,7 @@ function ModuleSummaryCard({
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-[#58CC02] shrink-0" />
           <h3 className="font-display text-sm font-extrabold text-white">
-            Resumen de Módulos
+            {getTranslation(lang, 'moduleSummary')}
           </h3>
         </div>
 
@@ -1253,8 +1253,8 @@ function ModuleSummaryCard({
                     <p className="text-[11px] text-neutral-400">{item.subtitle}</p>
                     <p className="pt-1 border-t border-[#1C272D] font-mono text-[11px] text-neutral-300 tabular-nums">
                       <span className="text-[#58CC02] font-bold">{item.xpAlcanzado} XP</span>
-                      {' · '}Meta {item.xpMeta} XP{' · '}
-                      {item.nodosCompletados}/{item.nodosTotales} nodos
+                      {' · '}{isEn ? 'Goal' : 'Meta'} {item.xpMeta} XP{' · '}
+                      {item.nodosCompletados}/{item.nodosTotales} {isEn ? 'nodes' : 'nodos'}
                     </p>
                   </div>
                 );
@@ -1262,14 +1262,14 @@ function ModuleSummaryCard({
             />
             <Bar
               dataKey="xpMeta"
-              name="Meta del Módulo (XP)"
+              name={getTranslation(lang, 'moduleGoalXp')}
               fill="#202F36"
               radius={[6, 6, 0, 0]}
               maxBarSize={28}
             />
             <Bar
               dataKey="xpAlcanzado"
-              name="XP Alcanzado"
+              name={getTranslation(lang, 'xpEarned')}
               radius={[6, 6, 0, 0]}
               maxBarSize={28}
               onClick={(_data, index) => {
@@ -1381,20 +1381,23 @@ function RightTriangleTrigBox({
   hypotenuse,
   angleLabel,
   accentColor,
+  lang = 'es',
 }: {
   opposite: number | string;
   adjacent: number | string;
   hypotenuse: number | string;
   angleLabel: string;
   accentColor: string;
+  lang?: Language;
 }) {
+  const isEn = lang === 'en';
   return (
     <div className="my-4 p-5 sm:p-6 rounded-2xl bg-[#131F24] border-2 border-[#26353D] flex flex-col sm:flex-row items-center justify-center gap-6">
       <svg
         viewBox="0 0 240 160"
         className="w-56 h-36 sm:w-64 sm:h-40 shrink-0 overflow-visible"
         role="img"
-        aria-label="Triángulo rectángulo trigonométrico"
+        aria-label={isEn ? 'Trigonometric right triangle' : 'Triángulo rectángulo trigonométrico'}
       >
         {/* Right-angle square marker at bottom-right (190, 130) */}
         <rect
@@ -1443,7 +1446,7 @@ function RightTriangleTrigBox({
           fontWeight="bold"
           fontFamily="monospace"
         >
-          hip = {hypotenuse}
+          {isEn ? 'hyp' : 'hip'} = {hypotenuse}
         </text>
 
         {/* Opposite side label (right vertical leg) */}
@@ -1455,7 +1458,7 @@ function RightTriangleTrigBox({
           fontWeight="bold"
           fontFamily="monospace"
         >
-          op = {opposite}
+          {isEn ? 'opp' : 'op'} = {opposite}
         </text>
 
         {/* Adjacent side label (bottom horizontal leg) */}
@@ -1467,14 +1470,14 @@ function RightTriangleTrigBox({
           fontWeight="bold"
           fontFamily="monospace"
         >
-          ady = {adjacent}
+          {isEn ? 'adj' : 'ady'} = {adjacent}
         </text>
       </svg>
 
       <div className="space-y-1.5 text-xs font-mono text-neutral-300 bg-[#0A0E11] p-3.5 rounded-xl border border-[#26353D]">
-        <p className="text-[#58CC02] font-bold">Cateto opuesto = {opposite}</p>
-        <p className="text-[#FF9600] font-bold">Cateto adyacente = {adjacent}</p>
-        <p className="text-[#1CB0F6] font-bold">Hipotenusa = {hypotenuse}</p>
+        <p className="text-[#58CC02] font-bold">{isEn ? 'Opposite leg' : 'Cateto opuesto'} = {opposite}</p>
+        <p className="text-[#FF9600] font-bold">{isEn ? 'Adjacent leg' : 'Cateto adyacente'} = {adjacent}</p>
+        <p className="text-[#1CB0F6] font-bold">{isEn ? 'Hypotenuse' : 'Hipotenusa'} = {hypotenuse}</p>
       </div>
     </div>
   );
@@ -1489,6 +1492,7 @@ function QuestionVisualIllustration({
   matrixA,
   matrixB,
   trigTriangle,
+  lang = 'es',
 }: {
   leftCount: number | string;
   rightCount: number | string;
@@ -1502,7 +1506,9 @@ function QuestionVisualIllustration({
     hypotenuse: number | string;
     angleLabel: string;
   };
+  lang?: Language;
 }) {
+  const isEn = lang === 'en';
   if (trigTriangle) {
     return (
       <RightTriangleTrigBox
@@ -1511,6 +1517,7 @@ function QuestionVisualIllustration({
         hypotenuse={trigTriangle.hypotenuse}
         angleLabel={trigTriangle.angleLabel}
         accentColor={accentColor}
+        lang={lang}
       />
     );
   }
@@ -1538,7 +1545,7 @@ function QuestionVisualIllustration({
         ) : (
           <div className="flex flex-col items-center gap-1">
             <div className="px-3.5 py-2 rounded-xl bg-[#202F36] border border-[#37464F] font-mono text-xs sm:text-sm font-bold text-[#00CD9C]">
-              Dimensión / Operador: {rightCount}
+              {isEn ? 'Dimension / Operator' : 'Dimensión / Operador'}: {rightCount}
             </div>
           </div>
         )}
@@ -1556,7 +1563,7 @@ function QuestionVisualIllustration({
           {leftCount}
         </div>
         <span className="text-[11px] text-neutral-400 font-mono">
-          {operator === '→' ? 'Entrada x' : 'Término A'}
+          {operator === '→' ? (isEn ? 'Input x' : 'Entrada x') : (isEn ? 'Term A' : 'Término A')}
         </span>
       </div>
 
@@ -1569,7 +1576,7 @@ function QuestionVisualIllustration({
           {rightCount}
         </div>
         <span className="text-[11px] text-neutral-400 font-mono">
-          {operator === '→' ? 'Regla f(x)' : 'Término B'}
+          {operator === '→' ? (isEn ? 'Rule f(x)' : 'Regla f(x)') : (isEn ? 'Term B' : 'Término B')}
         </span>
       </div>
     </div>
@@ -1627,7 +1634,28 @@ export default function App() {
 
   // Navigation & UI state (shows 1 active module at a time to avoid clutter)
   const [activeTab, setActiveTab] = useState<BottomTab>('aprender');
-  const [lang, setLang] = useState<'es' | 'en'>('es');
+  const [lang, setLang] = useState<'es' | 'en'>(() => {
+    return (localStorage.getItem('app_lang') as 'es' | 'en') || 'es';
+  });
+
+  const handleChangeLang = async (newLang: Language) => {
+    setLang(newLang);
+    localStorage.setItem('app_lang', newLang);
+    if (currentUser) {
+      try {
+        await setDoc(
+          doc(db, 'users', currentUser.uid),
+          {
+            languagePreference: newLang,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        console.warn('Language preference saved locally:', err);
+      }
+    }
+  };
 
   const currentCourseSections = React.useMemo(
     () => translateSections(rawCourseSections, lang),
@@ -1752,7 +1780,12 @@ export default function App() {
         const batch = writeBatch(db);
         let needsCommit = false;
 
-        if (!userSnap.exists()) {
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          if (userData?.languagePreference === 'en' || userData?.languagePreference === 'es') {
+            setLang(userData.languagePreference);
+          }
+        } else {
           needsCommit = true;
           const safeDisplayName = sanitizeString(
             user.displayName || user.email?.split('@')[0] || 'Estudiante',
@@ -1774,6 +1807,7 @@ export default function App() {
             bio: '',
             themePreference: 'dark',
             notificationsEnabled: true,
+            languagePreference: lang,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
@@ -2016,9 +2050,17 @@ export default function App() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
       if (msg.includes('popup-closed-by-user')) {
-        setAuthError('Se cerró la ventana antes de completar el inicio de sesión.');
+        setAuthError(
+          lang === 'en'
+            ? 'The sign-in window was closed before completing.'
+            : 'Se cerró la ventana antes de completar el inicio de sesión.'
+        );
       } else {
-        setAuthError('No se pudo iniciar sesión con Google.');
+        setAuthError(
+          lang === 'en'
+            ? 'Could not sign in with Google.'
+            : 'No se pudo iniciar sesión con Google.'
+        );
       }
     } finally {
       setIsSigningIn(false);
@@ -2084,8 +2126,12 @@ export default function App() {
     const firstNodeIndex = sectionNodes[0].index;
 
     const skipTitle = section.moduleId
-      ? `Examen de Salto · Módulo ${section.moduleId} (Sección ${section.moduleSectionNumber || 1})`
-      : `Examen de Salto · Sección ${section.id}`;
+      ? (lang === 'en'
+          ? `Skip Exam · Module ${section.moduleId} (Section ${section.moduleSectionNumber || 1})`
+          : `Examen de Salto · Módulo ${section.moduleId} (Sección ${section.moduleSectionNumber || 1})`)
+      : (lang === 'en'
+          ? `Skip Exam · Section ${section.id}`
+          : `Examen de Salto · Sección ${section.id}`);
 
     const skipExamNode: ArithmeticNode = {
       index: firstNodeIndex,
@@ -2093,7 +2139,9 @@ export default function App() {
       sectionId: section.id,
       title: skipTitle,
       subtitle: section.previousSectionLabel
-        ? `Evalúa tema anterior: ${section.previousSectionLabel}`
+        ? (lang === 'en'
+            ? `Tests previous topic: ${section.previousSectionLabel}`
+            : `Evalúa tema anterior: ${section.previousSectionLabel}`)
         : section.title,
       xpReward: 50,
       gemsReward: 25,
@@ -2280,7 +2328,11 @@ export default function App() {
       drillOp === '+' ? drillA + drillB : drillOp === '−' ? drillA - drillB : drillA * drillB;
     if (normalizeMathAnswer(choice) === normalizeMathAnswer(String(correct))) {
       playCorrectSound();
-      setDrillFeedback('¡Correcto! +5 XP y +1 vida recuperada');
+      setDrillFeedback(
+        lang === 'en'
+          ? 'Correct! +5 XP and +1 heart restored'
+          : '¡Correcto! +5 XP y +1 vida recuperada'
+      );
       try {
         await updateDoc(doc(db, currentCourseCollection, currentUser.uid), {
           xp: Math.min(1000000, progress.xp + 5),
@@ -2297,7 +2349,11 @@ export default function App() {
       generateNextDrill();
     } else {
       playWrongSound();
-      setDrillFeedback(`Casi: ${drillA} ${drillOp} ${drillB} = ${correct}. ¡Sigue intentando!`);
+      setDrillFeedback(
+        lang === 'en'
+          ? `Almost: ${drillA} ${drillOp} ${drillB} = ${correct}. Keep trying!`
+          : `Casi: ${drillA} ${drillOp} ${drillB} = ${correct}. ¡Sigue intentando!`
+      );
       setDrillTyped('');
     }
   };
@@ -2588,10 +2644,10 @@ export default function App() {
               ΔH°
             </div>
             <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Iniciar sesión
+              {getTranslation(lang, 'loginTitle')}
             </h1>
             <p className="text-sm text-neutral-400">
-              Cursos de Química, Física y Matemáticas
+              {getTranslation(lang, 'loginSub')}
             </p>
           </div>
 
@@ -2617,7 +2673,7 @@ export default function App() {
                 d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81Z"
               />
             </svg>
-            <span>{isSigningIn ? 'Conectando...' : 'CONTINUAR CON GOOGLE (ENTER)'}</span>
+            <span>{isSigningIn ? getTranslation(lang, 'connecting') : getTranslation(lang, 'googleSignInBtn')}</span>
           </button>
         </div>
       </main>
@@ -2652,20 +2708,20 @@ export default function App() {
             <div className="space-y-2">
               <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-[#FFC800] tracking-tight">
                 {activeLessonNode.isSkipExam
-                  ? '¡Salto de sección superado!'
-                  : '¡Lección completada!'}
+                  ? getTranslation(lang, 'sectionSkipPassedTitle')
+                  : getTranslation(lang, 'lessonCompletedTitle')}
               </h1>
               <p className="text-sm sm:text-base text-neutral-400">
                 {activeLessonNode.isSkipExam ? (
                   <>
-                    Has desbloqueado directamente{' '}
+                    {getTranslation(lang, 'unlockedSubtitle')}{' '}
                     <span className="text-white font-semibold">
                       {activeLessonNode.subtitle}
                     </span>
                   </>
                 ) : (
                   <>
-                    Has dominado{' '}
+                    {getTranslation(lang, 'masteredSubtitle')}{' '}
                     <span className="text-white font-semibold">
                       {activeLessonNode.title}
                     </span>
@@ -2678,7 +2734,7 @@ export default function App() {
             <div className="w-full grid grid-cols-3 gap-3 sm:gap-4 pt-2">
               <div className="rounded-2xl bg-[#FFC800] p-0.5">
                 <div className="bg-[#FFC800] text-black text-[10px] sm:text-xs font-extrabold uppercase py-1.5 rounded-t-xl">
-                  EXP Total
+                  {getTranslation(lang, 'totalExpLabel')}
                 </div>
                 <div className="bg-[#131F24] rounded-b-xl py-3.5 sm:py-4 font-mono text-lg sm:text-2xl font-extrabold text-[#FFC800] tabular-nums">
                   +{activeLessonNode.xpReward}
@@ -2687,7 +2743,7 @@ export default function App() {
 
               <div className="rounded-2xl bg-[#58CC02] p-0.5">
                 <div className="bg-[#58CC02] text-black text-[10px] sm:text-xs font-extrabold uppercase py-1.5 rounded-t-xl">
-                  Precisión
+                  {getTranslation(lang, 'accuracyLabel')}
                 </div>
                 <div className="bg-[#131F24] rounded-b-xl py-3.5 sm:py-4 font-mono text-lg sm:text-2xl font-extrabold text-[#58CC02] tabular-nums">
                   {accuracy}%
@@ -2696,7 +2752,7 @@ export default function App() {
 
               <div className="rounded-2xl bg-[#1CB0F6] p-0.5">
                 <div className="bg-[#1CB0F6] text-black text-[10px] sm:text-xs font-extrabold uppercase py-1.5 rounded-t-xl">
-                  Gemas
+                  {lang === 'en' ? 'Gems' : 'Gemas'}
                 </div>
                 <div className="bg-[#131F24] rounded-b-xl py-3.5 sm:py-4 font-mono text-lg sm:text-2xl font-extrabold text-[#1CB0F6] tabular-nums">
                   +{activeLessonNode.gemsReward}
@@ -2709,14 +2765,14 @@ export default function App() {
             <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
               <span className="hidden sm:inline-flex items-center gap-2 text-xs font-mono text-neutral-400">
                 <Keyboard className="w-4 h-4 text-[#58CC02]" />
-                Presiona Enter o Esc para volver al árbol
+                {getTranslation(lang, 'returnTreeHint')}
               </span>
               <button
                 type="button"
                 onClick={() => setActiveLessonNode(null)}
                 className="w-full sm:w-56 py-3.5 rounded-2xl bg-[#58CC02] hover:bg-[#61E002] border-b-4 border-[#46A302] active:border-b-0 active:translate-y-1 text-black font-extrabold text-sm tracking-wider uppercase transition-all cursor-pointer"
               >
-                CONTINUAR (ENTER)
+                {getTranslation(lang, 'continueBtn')}
               </button>
             </div>
           </div>
@@ -2739,8 +2795,8 @@ export default function App() {
             type="button"
             onClick={() => setActiveLessonNode(null)}
             className="text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#131F24] border border-[#26353D]"
-            aria-label="Salir de la lección (Esc)"
-            title="Salir (Esc)"
+            aria-label={lang === 'en' ? 'Exit lesson (Esc)' : 'Salir de la lección (Esc)'}
+            title={lang === 'en' ? 'Exit (Esc)' : 'Salir (Esc)'}
           >
             <X className="w-5 h-5 stroke-[2.5]" />
             <span className="hidden sm:inline font-mono text-[11px] font-bold">
@@ -2759,13 +2815,13 @@ export default function App() {
           </div>
 
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#131F24] border border-[#26353D] font-mono text-xs font-extrabold text-neutral-300">
-            Pregunta {questionIndex + 1} / {totalQuestions}
+            {lang === 'en' ? 'Question' : 'Pregunta'} {questionIndex + 1} / {totalQuestions}
           </span>
 
           {activeLessonNode.isSkipExam && (
             <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#FFC800]/15 text-[#FFC800] font-mono text-xs font-extrabold">
               <FastForward className="w-3.5 h-3.5" />
-              SALTO SECCIÓN {activeLessonNode.sectionId}
+              {getTranslation(lang, 'sectionSkipBadge', { id: activeLessonNode.sectionId })}
             </span>
           )}
 
@@ -2783,13 +2839,13 @@ export default function App() {
             {/* COLUMNA IZQUIERDA EN PC: TEXTO, INSTRUCCIONES Y GUÍA           */}
             {/* ============================================================== */}
             <section
-              aria-label="Texto, instrucciones y guía de la lección"
+              aria-label={getTranslation(lang, 'textInstructionsGuide')}
               className="md:col-span-7 space-y-4"
             >
               <div className="flex items-center justify-between gap-2 px-1">
                 <span className="font-display text-xs font-extrabold uppercase tracking-wider text-[#1CB0F6] flex items-center gap-2">
                   <BookOpen className="w-4 h-4 shrink-0" />
-                  <span>Texto, Instrucciones y Guía</span>
+                  <span>{getTranslation(lang, 'textInstructionsGuide')}</span>
                 </span>
                 <span className="font-mono text-[11px] text-neutral-400">
                   {activeLessonNode.title}
@@ -2807,6 +2863,7 @@ export default function App() {
                     matrixA={currentQuestion.visualData.matrixA}
                     matrixB={currentQuestion.visualData.matrixB}
                     trigTriangle={currentQuestion.visualData.trigTriangle}
+                    lang={lang}
                   />
                 )}
 
@@ -2824,7 +2881,7 @@ export default function App() {
             {/* COLUMNA DERECHA EN PC: RESPONDER                               */}
             {/* ============================================================== */}
             <section
-              aria-label="Panel para responder la pregunta"
+              aria-label={getTranslation(lang, 'answerPanelTitle')}
               className="md:col-span-5 md:sticky md:top-6 space-y-4"
             >
               <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 sm:p-6 space-y-5 shadow-xl">
@@ -2833,11 +2890,11 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#58CC02]" />
                     <span className="font-display text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#58CC02]">
-                      Responder
+                      {getTranslation(lang, 'answerPanelTitle')}
                     </span>
                   </div>
                   <span className="font-mono text-[11px] font-bold text-[#FFC800] bg-[#0A0E11] px-2.5 py-1 rounded-lg border border-[#26353D]">
-                    Pregunta {questionIndex + 1} de {totalQuestions}
+                    {getTranslation(lang, 'questionCount', { current: questionIndex + 1, total: totalQuestions })}
                   </span>
                 </div>
 
@@ -2855,9 +2912,7 @@ export default function App() {
                   <p className="text-[11px] font-mono text-neutral-400 flex items-center gap-1.5">
                     <Keyboard className="w-3.5 h-3.5 text-[#1CB0F6] shrink-0" />
                     <span>
-                      Elige con <strong className="text-neutral-200">1–4</strong> /{' '}
-                      <strong className="text-neutral-200">← →</strong> o escribe tu respuesta y pulsa{' '}
-                      <strong className="text-[#58CC02]">Enter</strong>
+                      {getTranslation(lang, 'keyboardHint')}
                     </span>
                   </p>
                 </div>
@@ -2885,7 +2940,7 @@ export default function App() {
                               disabled={checkStatus !== 'idle'}
                               onChange={(e) => setSelectedOption(e.target.value)}
                               placeholder="?"
-                              aria-label="Escribe tu respuesta con el teclado"
+                              aria-label={lang === 'en' ? 'Type your answer with the keyboard' : 'Escribe tu respuesta con el teclado'}
                               className="min-w-[110px] flex-1 max-w-xs h-9 px-3 rounded-xl bg-[#131F24] border-2 border-[#1CB0F6] text-center font-mono text-xs sm:text-sm font-extrabold text-[#1CB0F6] placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-[#58CC02]"
                             />
                           )}
@@ -2910,7 +2965,7 @@ export default function App() {
                       disabled={checkStatus !== 'idle'}
                       onChange={(e) => setSelectedOption(e.target.value)}
                       placeholder="?"
-                      aria-label="Escribe tu respuesta con el teclado"
+                      aria-label={lang === 'en' ? 'Type your answer with the keyboard' : 'Escribe tu respuesta con el teclado'}
                       className="min-w-[120px] flex-1 h-9 px-3 rounded-xl bg-[#131F24] border-2 border-[#1CB0F6] text-center font-mono text-xs sm:text-sm font-extrabold text-[#1CB0F6] placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-[#58CC02]"
                     />
                     {currentQuestion.equationSuffix && (
@@ -2924,7 +2979,9 @@ export default function App() {
                 {/* Option Tiles inside the Right Column */}
                 <div className="space-y-2">
                   <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 block">
-                    Opciones de respuesta (clic o teclas 1–{currentQuestion.options.length}):
+                    {lang === 'en'
+                      ? `Answer options (click or keys 1–${currentQuestion.options.length}):`
+                      : `Opciones de respuesta (clic o teclas 1–${currentQuestion.options.length}):`}
                   </span>
                   <div
                     className={
@@ -2980,7 +3037,7 @@ export default function App() {
                           : 'bg-[#202F36] text-[#52656D] cursor-not-allowed'
                       }`}
                     >
-                      COMPROBAR RESPUESTA (ENTER)
+                      {getTranslation(lang, 'checkAnswerBtn')}
                     </button>
                   ) : (
                     <div
@@ -3013,8 +3070,8 @@ export default function App() {
                             }`}
                           >
                             {checkStatus === 'correct'
-                              ? '¡Excelente trabajo!'
-                              : `Respuesta correcta: ${currentQuestion.correctAnswer}`}
+                              ? getTranslation(lang, 'correctAnswerTitle')
+                              : `${getTranslation(lang, 'correctIs')} ${currentQuestion.correctAnswer}`}
                           </p>
                           <p className="text-[11px] sm:text-xs text-neutral-200 leading-relaxed">
                             {currentQuestion.explanation}
@@ -3031,7 +3088,7 @@ export default function App() {
                             : 'bg-[#FF4B4B] hover:bg-[#FF6262] border-b-4 border-[#CC3B3B] text-white'
                         }`}
                       >
-                        CONTINUAR (ENTER)
+                        {getTranslation(lang, 'continueBtn')}
                       </button>
                     </div>
                   )}
@@ -3060,10 +3117,10 @@ export default function App() {
           currentUser.uid,
           activeCourse,
           {
-            sociales: SOCIALES_NODES,
-            quimica: CHEMISTRY_NODES,
-            fisica: PHYSICS_NODES,
-            matematicas: ARITHMETIC_NODES,
+            sociales: translateNodes(SOCIALES_NODES, lang),
+            quimica: translateNodes(CHEMISTRY_NODES, lang),
+            fisica: translateNodes(PHYSICS_NODES, lang),
+            matematicas: translateNodes(ARITHMETIC_NODES, lang),
           },
           {
             ...allCourseNodeIndices,
@@ -3111,10 +3168,10 @@ export default function App() {
       ? getRecentFiveLessons(
           currentUser.uid,
           {
-            sociales: SOCIALES_NODES,
-            quimica: CHEMISTRY_NODES,
-            fisica: PHYSICS_NODES,
-            matematicas: ARITHMETIC_NODES,
+            sociales: translateNodes(SOCIALES_NODES, lang),
+            quimica: translateNodes(CHEMISTRY_NODES, lang),
+            fisica: translateNodes(PHYSICS_NODES, lang),
+            matematicas: translateNodes(ARITHMETIC_NODES, lang),
           },
           {
             ...allCourseNodeIndices,
@@ -3125,10 +3182,10 @@ export default function App() {
 
   const handleReplayRecentLesson = (item: RecentLessonHistoryItem) => {
     const courseNodesMap = {
-      sociales: SOCIALES_NODES,
-      quimica: CHEMISTRY_NODES,
-      fisica: PHYSICS_NODES,
-      matematicas: ARITHMETIC_NODES,
+      sociales: translateNodes(SOCIALES_NODES, lang),
+      quimica: translateNodes(CHEMISTRY_NODES, lang),
+      fisica: translateNodes(PHYSICS_NODES, lang),
+      matematicas: translateNodes(ARITHMETIC_NODES, lang),
     };
     const courseSectionsMap = {
       sociales: SOCIALES_SECTIONS,
@@ -3239,7 +3296,7 @@ export default function App() {
       : currentCourseSections.map((sec) => ({
           id: sec.id as ModuleId,
           label: lang === 'es' ? `Mód. ${sec.id}` : `Mod. ${sec.id}`,
-          sub: sec.title.replace(/^Sección\s+\d+\s*·\s*/i, '').slice(0, 14),
+          sub: sec.title.replace(/^(Sección|Section)\s+\d+\s*·\s*/i, '').slice(0, 14),
           activeBg:
             sec.id % 4 === 1
               ? 'bg-[#00CD9C] text-black'
@@ -3274,6 +3331,7 @@ export default function App() {
                   }
                   onSelectCourse={handleSwitchCourse}
                   align="left"
+                  lang={lang}
                 />
                 <div className="truncate">
                   <span
@@ -3287,20 +3345,14 @@ export default function App() {
                         : 'text-[#58CC02]'
                     }`}
                   >
-                    {activeCourse === 'sociales'
-                      ? 'sociales'
-                      : activeCourse === 'quimica'
-                      ? 'química'
-                      : activeCourse === 'fisica'
-                      ? 'física'
-                      : 'matemáticas'}
+                    {getCourseTitle(activeCourse, lang).toLowerCase()}
                   </span>
                   <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mt-0.5">
                     {activeCourse === 'sociales'
-                      ? '5 Mód. · 25 Secc.'
+                      ? (lang === 'en' ? '5 Mod. · 25 Sect.' : '5 Mód. · 25 Secc.')
                       : activeCourse === 'quimica'
-                      ? '3 Mód. · 22 Secc.'
-                      : '3 Mód. · 20 Secc.'}
+                      ? (lang === 'en' ? '3 Mod. · 22 Sect.' : '3 Mód. · 22 Secc.')
+                      : (lang === 'en' ? '3 Mod. · 20 Sect.' : '3 Mód. · 20 Secc.')}
                   </span>
                 </div>
               </div>
@@ -3408,6 +3460,7 @@ export default function App() {
           }
           onSelectCourse={handleSwitchCourse}
           align="left"
+          lang={lang}
         />
 
         <div className="flex items-center gap-6">
@@ -3425,7 +3478,7 @@ export default function App() {
             type="button"
             onClick={() => setActiveTab('perfil')}
             className="flex items-center gap-1.5 font-mono font-extrabold text-sm sm:text-base tabular-nums text-[#FF4B4B] cursor-pointer"
-            title="Vidas disponibles"
+            title={lang === 'es' ? 'Vidas disponibles' : 'Available hearts'}
           >
             <Heart className="w-5 h-5 fill-[#FF4B4B] text-[#FF4B4B]" />
             <span>{progress.hearts}</span>
@@ -3486,10 +3539,10 @@ export default function App() {
                       type="button"
                       onClick={() => setShowMobileStats((prev) => !prev)}
                       className="2xl:hidden px-3.5 py-3 rounded-2xl bg-[#131F24] hover:bg-[#202F36] border-2 border-[#26353D] text-xs font-extrabold text-neutral-200 flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap"
-                      title="Mostrar u ocultar desafíos del día, potenciadores y progreso"
+                      title={lang === 'es' ? 'Mostrar u ocultar desafíos del día, potenciadores y progreso' : 'Show or hide daily challenges, power-ups, and progress'}
                     >
                       <BarChart3 className="w-4 h-4 text-[#58CC02]" />
-                      <span className="hidden sm:inline">Desafíos</span>
+                      <span className="hidden sm:inline">{lang === 'es' ? 'Desafíos' : 'Quests'}</span>
                       {showMobileStats ? (
                         <ChevronUp className="w-4 h-4 text-neutral-400" />
                       ) : (
@@ -3569,7 +3622,7 @@ export default function App() {
                       ) : (
                         <span>
                           {lang === 'es' ? `Módulo ${selectedModuleFilter}` : `Module ${selectedModuleFilter}`} ·{' '}
-                          {currentCourseSections.find((s) => s.id === selectedModuleFilter)?.title.replace(/^Sección\s+\d+\s*·\s*/i, '') || ''}
+                          {currentCourseSections.find((s) => s.id === selectedModuleFilter)?.title.replace(/^(Sección|Section)\s+\d+\s*·\s*/i, '') || ''}
                         </span>
                       )}
                     </span>
@@ -3604,7 +3657,7 @@ export default function App() {
                     const modId = section.moduleId ?? 1;
                     const displaySecNumber = section.moduleSectionNumber ?? section.id;
                     const cleanSectionTitle = section.title.replace(
-                      /^Sección\s+\d+\s*·\s*/i,
+                      /^(Sección|Section)\s+\d+\s*·\s*/i,
                       ''
                     );
                     const canSkipSection =
@@ -3730,6 +3783,7 @@ export default function App() {
                                       nodeLocalIndex={localIdx}
                                       isCurrentNode={isCurrent}
                                       className="w-24 h-24 sm:w-28 sm:h-28"
+                                      lang={lang}
                                     />
                                   </div>
                                 )}
@@ -3939,6 +3993,7 @@ export default function App() {
                       setSpacedToastDismissed(false);
                       setActiveTab('aprender');
                     }}
+                    lang={lang}
                   />
                 </div>
 
@@ -4322,10 +4377,10 @@ export default function App() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <h3 className="font-display text-sm font-extrabold text-white">
-                        Estación de Vidas
+                        {getTranslation(lang, 'heartStation')}
                       </h3>
                       <p className="text-xs text-neutral-400">
-                        Tienes {progress.hearts} de 5 vidas disponibles
+                        {getTranslation(lang, 'heartsAvailable', { count: progress.hearts })}
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -4355,21 +4410,21 @@ export default function App() {
                     <Sparkles className="w-4 h-4" />
                     <span>
                       {progress.hearts >= 5
-                        ? 'VIDAS AL MÁXIMO (5/5)'
-                        : 'RECARGAR 5 VIDAS (20 GEMAS)'}
+                        ? getTranslation(lang, 'fullHeartsBtn')
+                        : getTranslation(lang, 'refillHeartsBtn')}
                     </span>
                   </button>
                 </div>
 
-                {/* Idioma de la Aplicación (Español / English) en Perfil */}
+                {/* Idioma de la Aplicación (Español / English) en Perfil con Menú Desplegable Global */}
                 <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="space-y-0.5">
                       <h3 className="font-display text-sm font-extrabold text-white">
-                        {lang === 'es' ? 'Idioma de la Aplicación' : 'Application Language'}
+                        {getTranslation(lang, 'appLanguage')}
                       </h3>
                       <p className="text-xs text-neutral-400">
-                        {lang === 'es' ? 'Selecciona tu idioma preferido (Español o Inglés)' : 'Select your preferred language (Spanish or English)'}
+                        {getTranslation(lang, 'selectLanguageDesc')}
                       </p>
                     </div>
                     <span className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-lg bg-[#1CB0F6]/15 text-[#1CB0F6] uppercase">
@@ -4377,29 +4432,41 @@ export default function App() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setLang('es')}
-                      className={`py-2.5 px-4 rounded-xl border-2 font-display text-xs font-extrabold transition-all cursor-pointer ${
-                        lang === 'es'
-                          ? 'bg-[#58CC02] border-[#46A302] text-black shadow-md'
-                          : 'bg-[#202F36] hover:bg-[#2A3E47] border-[#2E3E46] text-neutral-300'
-                      }`}
+                  {/* Dropdown Menu & Quick Buttons saving to Firestore */}
+                  <div className="space-y-3 pt-1">
+                    <select
+                      value={lang}
+                      onChange={(e) => handleChangeLang(e.target.value as Language)}
+                      className="w-full h-11 px-3.5 rounded-xl bg-[#0A0E11] border-2 border-[#1CB0F6] text-xs font-display font-extrabold text-white focus:outline-none focus:ring-2 focus:ring-[#58CC02] cursor-pointer"
                     >
-                      🇪🇸 Español (ES)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLang('en')}
-                      className={`py-2.5 px-4 rounded-xl border-2 font-display text-xs font-extrabold transition-all cursor-pointer ${
-                        lang === 'en'
-                          ? 'bg-[#1CB0F6] border-[#1185BA] text-black shadow-md'
-                          : 'bg-[#202F36] hover:bg-[#2A3E47] border-[#2E3E46] text-neutral-300'
-                      }`}
-                    >
-                      🇬🇧 English (EN)
-                    </button>
+                      <option value="es">🇪🇸 Español (Spanish - Global)</option>
+                      <option value="en">🇬🇧 English (Global)</option>
+                    </select>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleChangeLang('es')}
+                        className={`py-2.5 px-4 rounded-xl border-2 font-display text-xs font-extrabold transition-all cursor-pointer ${
+                          lang === 'es'
+                            ? 'bg-[#58CC02] border-[#46A302] text-black shadow-md'
+                            : 'bg-[#202F36] hover:bg-[#2A3E47] border-[#2E3E46] text-neutral-300'
+                        }`}
+                      >
+                        🇪🇸 Español (ES)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleChangeLang('en')}
+                        className={`py-2.5 px-4 rounded-xl border-2 font-display text-xs font-extrabold transition-all cursor-pointer ${
+                          lang === 'en'
+                            ? 'bg-[#1CB0F6] border-[#1185BA] text-black shadow-md'
+                            : 'bg-[#202F36] hover:bg-[#2A3E47] border-[#2E3E46] text-neutral-300'
+                        }`}
+                      >
+                        🇬🇧 English (EN)
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -4422,12 +4489,12 @@ export default function App() {
                       </div>
                       <div className="space-y-0.5">
                         <h3 className="font-display text-sm font-extrabold text-white">
-                          Efectos de Sonido
+                          {getTranslation(lang, 'soundEffects')}
                         </h3>
                         <p className="text-xs text-neutral-400">
                           {audioMuted || audioVolume === 0
-                            ? 'Silenciado · Sin sonidos en lecciones'
-                            : `Activo · Volumen al ${Math.round(audioVolume * 100)}%`}
+                            ? getTranslation(lang, 'soundMutedDesc')
+                            : getTranslation(lang, 'soundActiveDesc', { vol: Math.round(audioVolume * 100) })}
                         </p>
                       </div>
                     </div>
@@ -4444,12 +4511,12 @@ export default function App() {
                       {audioMuted || audioVolume === 0 ? (
                         <>
                           <VolumeX className="w-4 h-4" />
-                          <span>Silenciado</span>
+                          <span>{getTranslation(lang, 'soundMuted')}</span>
                         </>
                       ) : (
                         <>
                           <Volume2 className="w-4 h-4" />
-                          <span>Sonido ON</span>
+                          <span>{getTranslation(lang, 'soundOn')}</span>
                         </>
                       )}
                     </button>
@@ -4458,7 +4525,7 @@ export default function App() {
                   {/* Control deslizante de volumen */}
                   <div className="space-y-2 pt-1">
                     <div className="flex items-center justify-between text-xs font-bold text-neutral-400">
-                      <span>Volumen de efectos</span>
+                      <span>{getTranslation(lang, 'soundVolume')}</span>
                       <span className="font-mono text-white">
                         {audioMuted ? '0%' : `${Math.round(audioVolume * 100)}%`}
                       </span>
@@ -4480,7 +4547,7 @@ export default function App() {
                   {/* Botones de prueba rápida de sonidos sutiles */}
                   <div className="pt-1">
                     <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2">
-                      Probar efectos sutiles
+                      {getTranslation(lang, 'testSubtleSounds')}
                     </p>
                     <div className="grid grid-cols-3 gap-2">
                       <button
@@ -4489,7 +4556,7 @@ export default function App() {
                         onClick={() => playCorrectSound()}
                         className="py-2 px-2.5 rounded-xl bg-[#202F36] hover:bg-[#2A3E47] disabled:opacity-40 disabled:cursor-not-allowed border border-[#26353D] text-[11px] font-extrabold text-[#58CC02] transition-colors cursor-pointer"
                       >
-                        ✓ Respuesta
+                        {getTranslation(lang, 'answerSound')}
                       </button>
                       <button
                         type="button"
@@ -4497,7 +4564,7 @@ export default function App() {
                         onClick={() => playLevelUpSound()}
                         className="py-2 px-2.5 rounded-xl bg-[#202F36] hover:bg-[#2A3E47] disabled:opacity-40 disabled:cursor-not-allowed border border-[#26353D] text-[11px] font-extrabold text-[#FFC800] transition-colors cursor-pointer"
                       >
-                        ★ Nuevo nivel
+                        {getTranslation(lang, 'levelUpSound')}
                       </button>
                       <button
                         type="button"
@@ -4505,7 +4572,7 @@ export default function App() {
                         onClick={() => playLessonCompleteSound()}
                         className="py-2 px-2.5 rounded-xl bg-[#202F36] hover:bg-[#2A3E47] disabled:opacity-40 disabled:cursor-not-allowed border border-[#26353D] text-[11px] font-extrabold text-[#1CB0F6] transition-colors cursor-pointer"
                       >
-                        🏆 Lección
+                        {getTranslation(lang, 'lessonSound')}
                       </button>
                     </div>
                   </div>
@@ -4523,6 +4590,7 @@ export default function App() {
                     setSpacedToastDismissed(false);
                     setActiveTab('aprender');
                   }}
+                  lang={lang}
                 />
 
                 {/* Reiniciar progreso & Cerrar sesión */}
@@ -4534,15 +4602,7 @@ export default function App() {
                   >
                     <RotateCcw className="w-4 h-4" />
                     <span>
-                      Reiniciar progreso (
-                      {activeCourse === 'sociales'
-                        ? 'Ciencias Sociales'
-                        : activeCourse === 'quimica'
-                        ? 'Química'
-                        : activeCourse === 'fisica'
-                        ? 'Física'
-                        : 'Matemáticas'}
-                      )
+                      {getTranslation(lang, 'resetProgressBtn')} ({getCourseTitle(activeCourse, lang)})
                     </span>
                   </button>
 
@@ -4552,7 +4612,7 @@ export default function App() {
                     className="w-full py-3 rounded-xl bg-[#2D1215] hover:bg-[#3D181C] border-b-4 border-[#1F0B0D] text-xs font-extrabold text-[#FF4B4B] flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span>CERRAR SESIÓN</span>
+                    <span>{getTranslation(lang, 'signOutBtn')}</span>
                   </button>
                 </div>
               </div>
@@ -4578,6 +4638,7 @@ export default function App() {
                 }
                 onSelectCourse={handleSwitchCourse}
                 align="left"
+                lang={lang}
               />
 
               <div className="flex items-center gap-1.5 font-mono font-extrabold text-sm sm:text-base tabular-nums text-[#FF9600]">
@@ -4649,7 +4710,7 @@ export default function App() {
               <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-extrabold uppercase tracking-wider text-[#58CC02]">
-                    Siguiente lección
+                    {getTranslation(lang, 'nextLesson')}
                   </span>
                   <span className="font-mono text-xs font-bold text-[#FFC800] tabular-nums">
                     +{currentActiveNode.xpReward} XP
@@ -4668,7 +4729,7 @@ export default function App() {
                   onClick={() => startLesson(currentActiveNode)}
                   className="w-full py-3 rounded-xl bg-[#58CC02] hover:bg-[#61E002] border-b-4 border-[#46A302] active:border-b-0 active:translate-y-1 text-black font-extrabold text-xs tracking-wider uppercase transition-all cursor-pointer"
                 >
-                  ¡EMPEZAR LECCIÓN! (ENTER)
+                  {getTranslation(lang, 'startLessonBtn')}
                 </button>
               </div>
             )}
@@ -4691,7 +4752,7 @@ export default function App() {
                 type="button"
                 onClick={() => setGuideModalSection(null)}
                 className="p-1 rounded-lg bg-black/20 hover:bg-black/30 cursor-pointer"
-                title="Cerrar (Esc)"
+                title={lang === 'es' ? 'Cerrar (Esc)' : 'Close (Esc)'}
               >
                 <X className="w-5 h-5" />
               </button>

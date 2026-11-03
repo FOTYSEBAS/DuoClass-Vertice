@@ -23,7 +23,7 @@ export function getSectionReadingSubSections(
   lang: 'es' | 'en' = 'es'
 ): ReadingSubSection[] {
   const isEn = lang === 'en';
-  const cleanTitle = section.title.replace(/^Sección\s+\d+\s*·\s*/i, '');
+  const cleanTitle = section.title.replace(/^(Sección|Section)\s+\d+\s*·\s*/i, '');
   const tip0 = section.guideTips[0];
   const tip1 = section.guideTips[1] || section.guideTips[0];
   const nodeTitles = sectionNodes.map((n) => n.title).join(', ');
@@ -506,7 +506,7 @@ export const LessonReadingContextBox: React.FC<LessonReadingContextBoxProps> = (
                       </span>
                       {isHighlighted && (
                         <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#1CB0F6]/15 text-[#1CB0F6] font-bold">
-                          Lectura clave para esta pregunta
+                          {isEn ? 'Key reading for this question' : 'Lectura clave para esta pregunta'}
                         </span>
                       )}
                     </div>
@@ -562,11 +562,11 @@ export const LessonReadingContextBox: React.FC<LessonReadingContextBoxProps> = (
           <div className="flex items-center gap-2 min-w-0">
             <BookOpen className="w-4 h-4 shrink-0" />
             <span className="font-display text-xs font-extrabold truncate">
-              Guía · {section.guideTitle}
+              {isEn ? 'Guide' : 'Guía'} · {section.guideTitle}
             </span>
           </div>
           <span className="font-mono text-[10px] bg-black/25 px-2 py-0.5 rounded shrink-0">
-            Apoyo Teórico
+            {isEn ? 'Theoretical Support' : 'Apoyo Teórico'}
           </span>
         </div>
 
@@ -580,7 +580,7 @@ export const LessonReadingContextBox: React.FC<LessonReadingContextBoxProps> = (
                 {tip.rule}
               </p>
               <p className="text-[10.5px] font-mono text-[#58CC02] bg-[#0A1114] px-2.5 py-1.5 rounded-lg leading-relaxed">
-                Ejemplo: {tip.example}
+                {isEn ? 'Example:' : 'Ejemplo:'} {tip.example}
               </p>
             </div>
           ))}

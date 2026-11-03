@@ -16,6 +16,19 @@ import {
   SPACED_INTERVALS_DAYS,
   SpacedRepetitionSuggestion,
 } from '../services/spacedRepetition';
+import { translateText } from '../curriculumTranslator';
+
+function translateCourseLabel(label: string, isEn: boolean): string {
+  if (!isEn) return label;
+  const map: Record<string, string> = {
+    'Ciencias Sociales': 'Social Sciences',
+    'Sociales': 'Social Sciences',
+    'Química': 'Chemistry',
+    'Física': 'Physics',
+    'Matemáticas': 'Mathematics',
+  };
+  return map[label] || label;
+}
 
 interface SpacedRepetitionToastProps {
   suggestions: SpacedRepetitionSuggestion[];
@@ -83,7 +96,7 @@ export const SpacedRepetitionToast: React.FC<SpacedRepetitionToastProps> = ({
               borderColor: current.courseColor,
               color: current.courseColor,
             }}
-            title="Curva de memoria · Repetición espaciada"
+            title={isEn ? 'Memory curve · Spaced repetition' : 'Curva de memoria · Repetición espaciada'}
           >
             <Brain className="w-5 h-5" />
           </div>
@@ -92,21 +105,22 @@ export const SpacedRepetitionToast: React.FC<SpacedRepetitionToastProps> = ({
             <div className="flex items-center flex-wrap gap-1.5 text-[11px] font-mono font-bold">
               <span className="text-[#FFC800] uppercase tracking-wider flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                Repetición espaciada
+                {isEn ? 'Spaced repetition' : 'Repetición espaciada'}
               </span>
               <span className="text-neutral-500">·</span>
               <span className="text-neutral-300">
-                Hace {current.daysSinceReview}{' '}
-                {current.daysSinceReview === 1 ? 'día' : 'días'}
+                {isEn
+                  ? `${current.daysSinceReview} ${current.daysSinceReview === 1 ? 'day' : 'days'} ago`
+                  : `Hace ${current.daysSinceReview} ${current.daysSinceReview === 1 ? 'día' : 'días'}`}
               </span>
               {simulatedDaysOffset > 0 && (
                 <span className="px-1.5 py-0.2 rounded bg-[#CE82FF]/20 text-[#CE82FF] text-[10px]">
-                  +{simulatedDaysOffset}d simulados
+                  +{simulatedDaysOffset}d {isEn ? 'simulated' : 'simulados'}
                 </span>
               )}
               <span className="text-neutral-500">·</span>
               <span className={`${retentionColor} tabular-nums`}>
-                {current.retentionPercent}% retención
+                {current.retentionPercent}% {isEn ? 'retention' : 'retención'}
               </span>
             </div>
 
@@ -115,10 +129,10 @@ export const SpacedRepetitionToast: React.FC<SpacedRepetitionToastProps> = ({
                 className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded text-black shrink-0"
                 style={{ backgroundColor: current.courseColor }}
               >
-                {current.courseLabel}
+                {translateCourseLabel(current.courseLabel, isEn)}
               </span>
               <p className="font-display text-xs sm:text-sm font-extrabold text-white truncate">
-                Sugerencia: {current.node.title}
+                {isEn ? 'Suggestion' : 'Sugerencia'}: {translateText(current.node.title, lang)}
               </p>
             </div>
 
@@ -131,8 +145,9 @@ export const SpacedRepetitionToast: React.FC<SpacedRepetitionToastProps> = ({
                 />
               </div>
               <span className="text-[10px] font-mono text-neutral-400 truncate">
-                Etapa {current.repetitionStage + 1}/5 (próx. repaso en{' '}
-                {nextIntervalDays}d)
+                {isEn
+                  ? `Stage ${current.repetitionStage + 1}/5 (next review in ${nextIntervalDays}d)`
+                  : `Etapa ${current.repetitionStage + 1}/5 (próx. repaso en ${nextIntervalDays}d)`}
               </span>
             </div>
           </div>
@@ -147,7 +162,7 @@ export const SpacedRepetitionToast: React.FC<SpacedRepetitionToastProps> = ({
                 setSelectedIndex((prev) => (prev + 1) % suggestions.length)
               }
               className="px-2 py-1.5 rounded-xl bg-[#202F36] hover:bg-[#2A3E47] border border-[#2E3E46] text-[11px] font-mono font-bold text-neutral-300 flex items-center gap-0.5 cursor-pointer"
-              title="Ver otra lección sugerida para repasar"
+              title={isEn ? 'View another suggested lesson to review' : 'Ver otra lección sugerida para repasar'}
             >
               <span>
                 {safeIndex + 1}/{suggestions.length}
@@ -160,7 +175,7 @@ export const SpacedRepetitionToast: React.FC<SpacedRepetitionToastProps> = ({
             type="button"
             onClick={() => onSimulateDays(3)}
             className="px-2.5 py-1.5 rounded-xl bg-[#202F36] hover:bg-[#2A3E47] border border-[#2E3E46] text-[11px] font-mono font-bold text-[#1CB0F6] cursor-pointer"
-            title="Simular inicio de sesión después de 3 días adicionales"
+            title={isEn ? 'Simulate login after 3 additional days' : 'Simular inicio de sesión después de 3 días adicionales'}
           >
             +3d
           </button>
@@ -171,14 +186,14 @@ export const SpacedRepetitionToast: React.FC<SpacedRepetitionToastProps> = ({
             className="px-3.5 py-2 rounded-xl bg-[#FFC800] hover:bg-[#FFD324] border-b-4 border-[#D9A300] active:border-b-0 active:translate-y-0.5 text-black font-display text-xs font-extrabold tracking-wide uppercase flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
           >
             <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>Repasar +5 XP</span>
+            <span>{isEn ? 'Review +5 XP' : 'Repasar +5 XP'}</span>
           </button>
 
           <button
             type="button"
             onClick={onDismiss}
-            aria-label="Cerrar notificación de repetición espaciada"
-            title="Recordar más tarde"
+            aria-label={isEn ? 'Close spaced repetition notification' : 'Cerrar notificación de repetición espaciada'}
+            title={isEn ? 'Remind me later' : 'Recordar más tarde'}
             className="p-1.5 rounded-xl text-neutral-400 hover:text-white hover:bg-[#202F36] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -267,14 +282,14 @@ export const SpacedRepetitionPanelCard: React.FC<
                     className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded text-black"
                     style={{ backgroundColor: item.courseColor }}
                   >
-                    {item.courseLabel}
+                    {translateCourseLabel(item.courseLabel, isEn)}
                   </span>
                   <span className="text-[11px] font-mono text-neutral-400">
                     {isEn ? `${item.daysSinceReview}d ago` : `Hace ${item.daysSinceReview}d`} · {item.retentionPercent}% {isEn ? 'retention' : 'retención'}
                   </span>
                 </div>
                 <p className="text-xs sm:text-sm font-bold text-white truncate">
-                  {item.node.title}
+                  {translateText(item.node.title, lang)}
                 </p>
               </div>
 

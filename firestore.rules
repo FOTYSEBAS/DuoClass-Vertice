@@ -48,6 +48,7 @@ service cloud.firestore {
           'bio',
           'themePreference',
           'notificationsEnabled',
+          'languagePreference',
           'createdAt',
           'updatedAt'
         ]) &&
@@ -60,6 +61,7 @@ service cloud.firestore {
           'bio',
           'themePreference',
           'notificationsEnabled',
+          'languagePreference',
           'createdAt',
           'updatedAt'
         ]) &&
@@ -72,6 +74,7 @@ service cloud.firestore {
         data.bio is string && data.bio.size() >= 0 && data.bio.size() <= 280 &&
         data.themePreference is string && (data.themePreference == 'light' || data.themePreference == 'dark') &&
         data.notificationsEnabled is bool &&
+        data.languagePreference is string && (data.languagePreference == 'es' || data.languagePreference == 'en') &&
         data.createdAt is timestamp &&
         data.updatedAt is timestamp;
     }
@@ -300,6 +303,7 @@ service cloud.firestore {
             'bio',
             'themePreference',
             'notificationsEnabled',
+            'languagePreference',
             'updatedAt'
           ])
         );

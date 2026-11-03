@@ -1,8 +1,21 @@
 import React from 'react';
 import { Calendar, CheckCircle2, Clock, FileText, RotateCcw, Trophy, Zap } from 'lucide-react';
 import { ArithmeticNode } from '../mathCurriculum';
+import { translateText } from '../curriculumTranslator';
 
 export type RecentCourseId = 'sociales' | 'quimica' | 'fisica' | 'matematicas';
+
+function translateCourseLabel(label: string, isEn: boolean): string {
+  if (!isEn) return label;
+  const map: Record<string, string> = {
+    'Ciencias Sociales': 'Social Sciences',
+    'Sociales': 'Social Sciences',
+    'Química': 'Chemistry',
+    'Física': 'Physics',
+    'Matemáticas': 'Mathematics',
+  };
+  return map[label] || label;
+}
 
 export interface RecentLessonHistoryItem {
   id: string;
@@ -135,19 +148,20 @@ export function getRecentFiveLessons(
     .slice(0, 5);
 }
 
-export function formatSpanishDateAndTime(timestampMs: number): {
+export function formatSpanishDateAndTime(timestampMs: number, lang: 'es' | 'en' = 'es'): {
   fullDate: string;
   relativeLabel: string;
 } {
+  const isEn = lang === 'en';
   const date = new Date(timestampMs);
   const now = new Date();
 
-  const dayFormatter = new Intl.DateTimeFormat('es-ES', {
+  const dayFormatter = new Intl.DateTimeFormat(isEn ? 'en-US' : 'es-ES', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
-  const timeFormatter = new Intl.DateTimeFormat('es-ES', {
+  const timeFormatter = new Intl.DateTimeFormat(isEn ? 'en-US' : 'es-ES', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
@@ -160,17 +174,17 @@ export function formatSpanishDateAndTime(timestampMs: number): {
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  let relativeLabel = 'Hoy';
+  let relativeLabel = isEn ? 'Today' : 'Hoy';
   if (diffMinutes < 2) {
-    relativeLabel = 'Hace instantes';
+    relativeLabel = isEn ? 'Just now' : 'Hace instantes';
   } else if (diffHours < 1) {
-    relativeLabel = `Hace ${diffMinutes} min`;
+    relativeLabel = isEn ? `${diffMinutes} min ago` : `Hace ${diffMinutes} min`;
   } else if (diffDays === 0) {
-    relativeLabel = `Hoy · Hace ${diffHours} h`;
+    relativeLabel = isEn ? `Today · ${diffHours} h ago` : `Hoy · Hace ${diffHours} h`;
   } else if (diffDays === 1) {
-    relativeLabel = 'Ayer';
+    relativeLabel = isEn ? 'Yesterday' : 'Ayer';
   } else {
-    relativeLabel = `Hace ${diffDays} días`;
+    relativeLabel = isEn ? `${diffDays} days ago` : `Hace ${diffDays} días`;
   }
 
   return { fullDate, relativeLabel };
@@ -259,7 +273,8 @@ export const RecentHistoryCard: React.FC<RecentHistoryCardProps> = ({
         <div className="space-y-2.5">
           {recentFive.map((item, idx) => {
             const { fullDate, relativeLabel } = formatSpanishDateAndTime(
-              item.completedAt
+              item.completedAt,
+              lang
             );
             const isExcellent = item.scorePts >= 90;
             const isGood = item.scorePts >= 80 && item.scorePts < 90;
@@ -290,16 +305,16 @@ export const RecentHistoryCard: React.FC<RecentHistoryCardProps> = ({
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold tracking-wide">
                       <span style={{ color: item.courseColor }} className="uppercase">
-                        {item.courseLabel}
+                        {translateCourseLabel(item.courseLabel, isEn)}
                       </span>
                       <span className="text-neutral-600">·</span>
                       <span className="text-neutral-400 truncate">
-                        {item.subtitle}
+                        {translateText(item.subtitle, lang)}
                       </span>
                     </div>
 
                     <p className="text-xs sm:text-sm font-extrabold text-white truncate">
-                      {item.title}
+                      {translateText(item.title, lang)}
                     </p>
 
                     <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono tabular-nums text-neutral-400">
@@ -324,13 +339,17 @@ export const RecentHistoryCard: React.FC<RecentHistoryCardProps> = ({
                       <span
                         className="font-mono tabular-nums text-xs sm:text-sm font-extrabold"
                         style={{ color: scoreColor }}
+                      />
+                      <span
+                        className="font-mono tabular-nums text-xs sm:text-sm font-extrabold"
+                        style={{ color: scoreColor }}
                       >
                         {item.scorePts}/100 pts ({item.scorePts}%)
                       </span>
                     </div>
                     <div className="flex items-center sm:justify-end gap-1.5 text-[10px] font-mono tabular-nums text-neutral-400">
                       <span>
-                        {item.correctCount}/{item.totalQuestions} aciertos
+                        {item.correctCount}/{item.totalQuestions} {isEn ? 'hits' : 'aciertos'}
                       </span>
                       <span className="text-neutral-600">·</span>
                       <span className="text-[#FFC800] font-bold">
@@ -342,11 +361,11 @@ export const RecentHistoryCard: React.FC<RecentHistoryCardProps> = ({
                   <button
                     type="button"
                     onClick={() => onReplayLesson(item)}
-                    title={`Repasar ${item.title}`}
+                    title={`${isEn ? 'Review' : 'Repasar'} ${translateText(item.title, lang)}`}
                     className="px-2.5 py-1.5 rounded-xl bg-[#202F36] hover:bg-[#2A3E47] border-b-2 border-[#0E171B] text-[10px] font-extrabold uppercase tracking-wider text-[#1CB0F6] flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
                   >
                     <RotateCcw className="w-3 h-3" />
-                    <span>Repasar</span>
+                    <span>{isEn ? 'Review' : 'Repasar'}</span>
                   </button>
                 </div>
               </div>

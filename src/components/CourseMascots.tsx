@@ -9,6 +9,7 @@ export interface ZoneMascotProps {
   nodeLocalIndex: number;
   isCurrentNode?: boolean;
   className?: string;
+  lang?: 'es' | 'en';
 }
 
 /**
@@ -795,17 +796,26 @@ export function ZoneCharacterMascot({
   moduleId,
   nodeLocalIndex,
   className = 'w-24 h-24 sm:w-28 sm:h-28',
+  lang = 'es',
 }: ZoneMascotProps) {
+  const isEn = lang === 'en';
   const zoneKey = sectionId + nodeLocalIndex + moduleId;
 
   if (course === 'matematicas') {
     const poseIndex = (sectionId + (nodeLocalIndex > 1 ? 2 : 0)) % 4;
-    const labels = [
-      'Búho · Cálculo Mental',
-      'Búho · Geometría',
-      'Búho · Álgebra',
-      'Búho · Campeón',
-    ];
+    const labels = isEn
+      ? [
+          'Owl · Mental Math',
+          'Owl · Geometry',
+          'Owl · Algebra',
+          'Owl · Champion',
+        ]
+      : [
+          'Búho · Cálculo Mental',
+          'Búho · Geometría',
+          'Búho · Álgebra',
+          'Búho · Campeón',
+        ];
     return (
       <div className="flex flex-col items-center group">
         {poseIndex === 0 && <MathOwlWaveSvg className={className} />}
@@ -828,14 +838,14 @@ export function ZoneCharacterMascot({
           <>
             <MadScientistCoatSvg className={className} variant={zoneKey} />
             <span className="mt-0.5 px-2 py-0.5 rounded-md bg-[#131F24]/90 border border-[#26353D] text-[10px] font-mono font-bold text-[#CE82FF] whitespace-nowrap shadow-sm">
-              Científico Loco
+              {isEn ? 'Mad Scientist' : 'Científico Loco'}
             </span>
           </>
         ) : (
           <>
             <ChemProfessorGlassesSvg className={className} variant={zoneKey} />
             <span className="mt-0.5 px-2 py-0.5 rounded-md bg-[#131F24]/90 border border-[#26353D] text-[10px] font-mono font-bold text-[#00CD9C] whitespace-nowrap shadow-sm">
-              Prof. de Química
+              {isEn ? 'Chem. Professor' : 'Prof. de Química'}
             </span>
           </>
         )}
@@ -845,11 +855,17 @@ export function ZoneCharacterMascot({
 
   if (course === 'sociales') {
     const poseVariant = sectionId + (nodeLocalIndex > 1 ? 1 : 0);
-    const labels = [
-      'Graduado · Diploma',
-      'Graduado · Territorio',
-      'Graduado · Memoria',
-    ];
+    const labels = isEn
+      ? [
+          'Graduate · Diploma',
+          'Graduate · Territory',
+          'Graduate · Memory',
+        ]
+      : [
+          'Graduado · Diploma',
+          'Graduado · Territorio',
+          'Graduado · Memoria',
+        ];
     return (
       <div className="flex flex-col items-center group">
         <SocialesGraduateSvg className={className} variant={poseVariant} />
@@ -868,7 +884,7 @@ export function ZoneCharacterMascot({
         <>
           <MathOwlGeometrySvg className={className} />
           <span className="mt-0.5 px-2 py-0.5 rounded-md bg-[#131F24]/90 border border-[#26353D] text-[10px] font-mono font-bold text-[#FF9600] whitespace-nowrap shadow-sm">
-            Búho · Mecánica
+            {isEn ? 'Owl · Mechanics' : 'Búho · Mecánica'}
           </span>
         </>
       )}
@@ -876,7 +892,7 @@ export function ZoneCharacterMascot({
         <>
           <MadScientistCoatSvg className={className} variant={zoneKey} />
           <span className="mt-0.5 px-2 py-0.5 rounded-md bg-[#131F24]/90 border border-[#26353D] text-[10px] font-mono font-bold text-[#1CB0F6] whitespace-nowrap shadow-sm">
-            Lab. de Energía
+            {isEn ? 'Energy Lab' : 'Lab. de Energía'}
           </span>
         </>
       )}
@@ -884,7 +900,7 @@ export function ZoneCharacterMascot({
         <>
           <ChemProfessorGlassesSvg className={className} variant={zoneKey} />
           <span className="mt-0.5 px-2 py-0.5 rounded-md bg-[#131F24]/90 border border-[#26353D] text-[10px] font-mono font-bold text-[#58CC02] whitespace-nowrap shadow-sm">
-            Prof. de Física
+            {isEn ? 'Physics Prof.' : 'Prof. de Física'}
           </span>
         </>
       )}
