@@ -39,9 +39,50 @@ import {
   Sparkles,
   Star,
   Trophy,
+  Volume2,
+  VolumeX,
   X,
   Zap,
 } from 'lucide-react';
+import {
+  getAudioVolume,
+  isAudioMuted,
+  playCorrectSound,
+  playLessonCompleteSound,
+  playLevelUpSound,
+  playWrongSound,
+  setAudioMuted,
+  setAudioVolume,
+} from './services/audioService';
+import { ZoneCharacterMascot } from './components/CourseMascots';
+import {
+  SpacedRepetitionPanelCard,
+  SpacedRepetitionToast,
+} from './components/SpacedRepetitionToast';
+import {
+  getRecentFiveLessons,
+  RecentHistoryCard,
+  RecentLessonHistoryItem,
+  recordRecentLessonCompletion,
+} from './components/RecentHistoryCard';
+import {
+  LessonReadingContextBox,
+  SectionReadingCard,
+} from './components/SectionReadingPanel';
+import {
+  translateNodes,
+  translateSections,
+} from './curriculumTranslator';
+import {
+  addSimulatedDaysAfterLogin,
+  getSpacedRepetitionSuggestions,
+  loadSpacedStore,
+  recordLessonReviewed,
+  registerUserLoginSession,
+  resetSimulatedDays,
+  SpacedRepetitionSuggestion,
+  syncCompletedNodesForCourse,
+} from './services/spacedRepetition';
 import {
   Bar,
   BarChart,
@@ -71,9 +112,10 @@ import {
 import { PHYSICS_NODES, PHYSICS_SECTIONS } from './physicsCurriculum';
 import { CHEMISTRY_NODES, CHEMISTRY_SECTIONS } from './chemistryCurriculum';
 import { SOCIALES_NODES, SOCIALES_SECTIONS } from './socialesCurriculum';
+import { getTranslation, Language, TRANSLATIONS } from './translations';
 
 type CourseId = 'sociales' | 'quimica' | 'fisica' | 'matematicas';
-type ModuleId = 1 | 2 | 3 | 4 | 5;
+type ModuleId = number;
 
 interface CourseMetaInfo {
   id: CourseId;
@@ -90,6 +132,23 @@ interface CourseMetaInfo {
     | 'mathProgress';
 }
 
+function getCourseTitle(id: CourseId, lang: Language): string {
+  if (lang === 'en') {
+    switch (id) {
+      case 'sociales': return 'Social Sciences';
+      case 'quimica': return 'Chemistry';
+      case 'fisica': return 'Physics';
+      case 'matematicas': return 'Mathematics';
+    }
+  }
+  switch (id) {
+    case 'sociales': return 'Ciencias Sociales';
+    case 'quimica': return 'Química';
+    case 'fisica': return 'Física';
+    case 'matematicas': return 'Matemáticas';
+  }
+}
+
 const COURSES_CATALOG: CourseMetaInfo[] = [
   {
     id: 'sociales',
@@ -98,7 +157,7 @@ const COURSES_CATALOG: CourseMetaInfo[] = [
     badgeColor: '#FF9600',
     accentText: 'text-[#FF9600]',
     modulesCount: 5,
-    sectionsCount: 20,
+    sectionsCount: 25,
     collectionName: 'socialesProgress',
   },
   {
@@ -107,7 +166,7 @@ const COURSES_CATALOG: CourseMetaInfo[] = [
     shortLabel: 'QUÍMICA',
     badgeColor: '#00CD9C',
     accentText: 'text-[#00CD9C]',
-    modulesCount: 3,
+    modulesCount: 22,
     sectionsCount: 22,
     collectionName: 'chemistryProgress',
   },
@@ -117,7 +176,7 @@ const COURSES_CATALOG: CourseMetaInfo[] = [
     shortLabel: 'FÍSICA',
     badgeColor: '#1CB0F6',
     accentText: 'text-[#1CB0F6]',
-    modulesCount: 3,
+    modulesCount: 20,
     sectionsCount: 20,
     collectionName: 'physicsProgress',
   },
@@ -127,7 +186,7 @@ const COURSES_CATALOG: CourseMetaInfo[] = [
     shortLabel: 'MATEMÁTICAS',
     badgeColor: '#58CC02',
     accentText: 'text-[#58CC02]',
-    modulesCount: 3,
+    modulesCount: 20,
     sectionsCount: 20,
     collectionName: 'mathProgress',
   },
@@ -210,6 +269,7 @@ function CourseSelectorDropdown({
   onToggle,
   onSelectCourse,
   align = 'left',
+  lang = 'es',
 }: {
   activeCourse: CourseId;
   levelCount: number;
@@ -217,6 +277,7 @@ function CourseSelectorDropdown({
   onToggle: () => void;
   onSelectCourse: (course: CourseId) => void;
   align?: 'left' | 'right';
+  lang?: Language;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -241,7 +302,7 @@ function CourseSelectorDropdown({
         type="button"
         onClick={onToggle}
         className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-[#202F36]/70 transition-colors cursor-pointer"
-        title="Mis cursos: escoger entre Química, Física y Matemáticas (Tecla C)"
+        title={lang === 'es' ? 'Mis cursos: escoger entre Química, Física, Matemáticas y Sociales (Tecla C)' : 'My courses: choose between Chemistry, Physics, Math, and Social Sciences'}
         aria-expanded={isOpen}
         aria-haspopup="menu"
       >
@@ -269,7 +330,7 @@ function CourseSelectorDropdown({
           {/* Header: MIS CURSOS */}
           <div className="px-5 py-3.5 border-b-2 border-[#26353D]">
             <span className="font-display text-xs font-extrabold uppercase tracking-wider text-[#52656D]">
-              MIS CURSOS
+              {getTranslation(lang, 'myCourses')}
             </span>
           </div>
 
@@ -277,6 +338,7 @@ function CourseSelectorDropdown({
           <div className="max-h-64 overflow-y-auto divide-y divide-[#202F36]/60">
             {COURSES_CATALOG.map((item) => {
               const isSelected = item.id === activeCourse;
+              const translatedTitle = getCourseTitle(item.id, lang);
               return (
                 <button
                   key={item.id}
@@ -300,10 +362,10 @@ function CourseSelectorDropdown({
                           isSelected ? 'text-[#1CB0F6]' : 'text-white'
                         }`}
                       >
-                        {item.title}
+                        {translatedTitle}
                       </span>
                       <span className="text-[10px] font-mono text-neutral-400">
-                        {item.modulesCount} módulos · {item.sectionsCount} secciones
+                        {item.modulesCount} {getTranslation(lang, 'modulesCount')} · {item.sectionsCount} {getTranslation(lang, 'sectionsCount')}
                       </span>
                     </div>
                   </div>
@@ -333,7 +395,7 @@ function CourseSelectorDropdown({
               +
             </div>
             <span className="font-display text-sm font-extrabold text-white leading-tight">
-              Agrega un nuevo curso
+              {getTranslation(lang, 'addNewCourse')}
             </span>
           </button>
         </div>
@@ -405,10 +467,13 @@ function GemIcon({ className = 'w-5 h-5' }: { className?: string }) {
 function DailyGoalRingChart({
   xp,
   goal = DAILY_XP_GOAL,
+  lang = 'es',
 }: {
   xp: number;
   goal?: number;
+  lang?: Language;
 }) {
+  const isEn = lang === 'en';
   const targetPercent = Math.min(100, Math.max(0, Math.round((xp / goal) * 100)));
   const [animatedPercent, setAnimatedPercent] = useState(0);
 
@@ -439,12 +504,12 @@ function DailyGoalRingChart({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-display text-sm font-extrabold text-white">
-            Meta diaria
+            {getTranslation(lang, 'dailyGoal')}
           </h3>
           <p className="text-[11px] text-neutral-400">
             {isCompleted
-              ? '¡Objetivo de hoy completado!'
-              : `Faltan ${Math.max(0, goal - xp)} XP para tu meta`}
+              ? getTranslation(lang, 'goalCompleted')
+              : getTranslation(lang, 'xpLeftForGoal', { xp: Math.max(0, goal - xp) })}
           </p>
         </div>
         <span
@@ -525,7 +590,7 @@ function DailyGoalRingChart({
                 className="w-3.5 h-3.5 shrink-0"
                 style={{ color: ringColor, fill: ringColor }}
               />
-              <span>Completado</span>
+              <span>{isEn ? 'Completed' : 'Completado'}</span>
             </span>
             <span className="font-mono font-extrabold text-white tabular-nums">
               {targetPercent}%
@@ -533,20 +598,20 @@ function DailyGoalRingChart({
           </div>
 
           <div className="flex items-center justify-between text-xs">
-            <span className="text-neutral-400">Total acumulado</span>
+            <span className="text-neutral-400">{getTranslation(lang, 'totalAccumulated')}</span>
             <span className="font-mono font-extrabold text-[#FFC800] tabular-nums">
               {xp} XP
             </span>
           </div>
 
           <div className="pt-1 border-t border-[#26353D] flex items-center justify-between text-[11px]">
-            <span className="text-neutral-400">Estado</span>
+            <span className="text-neutral-400">{getTranslation(lang, 'status')}</span>
             <span
               className={`font-bold ${
                 isCompleted ? 'text-[#58CC02]' : 'text-[#FFC800]'
               }`}
             >
-              {isCompleted ? 'Meta superada' : 'En progreso'}
+              {isCompleted ? getTranslation(lang, 'goalExceeded') : (isEn ? 'In progress' : 'En progreso')}
             </span>
           </div>
         </div>
@@ -616,18 +681,21 @@ function PotenciadoresStreakFreezeSection({
   equippedCount,
   maxCount = 2,
   onToggleOrRefill,
+  lang = 'es',
 }: {
   equippedCount: number;
   maxCount?: number;
   onToggleOrRefill: () => void;
+  lang?: Language;
 }) {
+  const isEn = lang === 'en';
   const isFullyEquipped = equippedCount >= maxCount;
   return (
     <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-4 sm:p-5 space-y-4">
       {/* Header: Potenciadores + Divider matching image_045d50ab.png */}
       <div className="pb-3 border-b-2 border-[#26353D]">
         <h3 className="font-display text-lg font-extrabold text-white tracking-tight">
-          Potenciadores
+          {getTranslation(lang, 'powerups')}
         </h3>
       </div>
 
@@ -638,14 +706,14 @@ function PotenciadoresStreakFreezeSection({
           <div className="space-y-1.5 min-w-0 flex-1">
             <div className="flex items-center flex-wrap gap-2">
               <span className="font-display text-[15px] sm:text-base font-extrabold text-white whitespace-nowrap leading-tight">
-                Protector de racha
+                {getTranslation(lang, 'streakFreeze')}
               </span>
               <span className="px-2 py-0.5 rounded-full bg-[#1E2F23] border border-[#2D4833] font-mono text-[10px] font-extrabold uppercase tracking-wider text-[#78E026] whitespace-nowrap">
-                {equippedCount} / {maxCount} EQUIPADOS
+                {equippedCount} / {maxCount} {getTranslation(lang, 'equipped')}
               </span>
             </div>
             <p className="text-xs text-neutral-300 leading-relaxed">
-              Te permite mantener tu racha cuando no usas la app por un día.
+              {getTranslation(lang, 'streakFreezeDesc')}
             </p>
           </div>
         </div>
@@ -660,11 +728,11 @@ function PotenciadoresStreakFreezeSection({
           }`}
           title={
             isFullyEquipped
-              ? 'Protector de racha equipado (clic para simular uso/recarga)'
-              : 'Equipar protector de racha (2/2)'
+              ? (isEn ? 'Streak freeze equipped' : 'Protector de racha equipado')
+              : (isEn ? 'Equip streak freeze' : 'Equipar protector de racha')
           }
         >
-          {isFullyEquipped ? 'EQUIPADO' : 'EQUIPAR'}
+          {isFullyEquipped ? (isEn ? 'EQUIPPED' : 'EQUIPADO') : (isEn ? 'EQUIP' : 'EQUIPAR')}
         </button>
       </div>
     </div>
@@ -757,13 +825,16 @@ function DailyRandomChallengesCard({
   sessionXpEarned,
   highAccuracyLessonsCount,
   comboFiveLessonsCount,
+  lang = 'es',
 }: {
   seedOffset: number;
   onRandomizeSeed: () => void;
   sessionXpEarned: number;
   highAccuracyLessonsCount: number;
   comboFiveLessonsCount: number;
+  lang?: Language;
 }) {
+  const isEn = lang === 'en';
   // Deterministic daily seed from current YYYY-MM-DD + user's manual shuffle offset
   const todayStr = new Date().toISOString().slice(0, 10);
   let dateHash = 0;
@@ -773,36 +844,59 @@ function DailyRandomChallengesCard({
 
   // Pool of random daily challenges for Slot 1 (XP / Lightning), Slot 2 (Target / Accuracy), Slot 3 (Owl / Streak)
   // Note: index 0 of each pool matches the exact text of image_628b9824.png!
-  const slot1Pool = [
-    { title: 'Gana 50 EXP', target: 50 },
-    { title: 'Gana 30 EXP', target: 30 },
-    { title: 'Gana 40 EXP', target: 40 },
-    { title: 'Gana 60 EXP', target: 60 },
-  ];
-  const slot2Pool = [
-    { title: 'Obtén un puntaje de 90 % o más en 3 lecciones', target: 3 },
-    { title: 'Obtén un puntaje de 90 % o más en 2 lecciones', target: 2 },
-    { title: 'Completa 3 lecciones con 90 % o más de precisión', target: 3 },
-    { title: 'Supera 4 lecciones con puntaje de 90 % o más', target: 4 },
-  ];
-  const slot3Pool = [
-    {
-      title: 'Responde correctamente 5 veces seguidas en 5 lecciones',
-      target: 5,
-    },
-    {
-      title: 'Responde correctamente 5 veces seguidas en 3 lecciones',
-      target: 3,
-    },
-    {
-      title: 'Responde correctamente 5 veces seguidas en 4 lecciones',
-      target: 4,
-    },
-    {
-      title: 'Responde correctamente 5 veces seguidas en 2 lecciones',
-      target: 2,
-    },
-  ];
+  const slot1Pool = isEn
+    ? [
+        { title: 'Earn 50 XP', target: 50 },
+        { title: 'Earn 30 XP', target: 30 },
+        { title: 'Earn 40 XP', target: 40 },
+        { title: 'Earn 60 XP', target: 60 },
+      ]
+    : [
+        { title: 'Gana 50 EXP', target: 50 },
+        { title: 'Gana 30 EXP', target: 30 },
+        { title: 'Gana 40 EXP', target: 40 },
+        { title: 'Gana 60 EXP', target: 60 },
+      ];
+
+  const slot2Pool = isEn
+    ? [
+        { title: 'Score 90% or higher in 3 lessons', target: 3 },
+        { title: 'Score 90% or higher in 2 lessons', target: 2 },
+        { title: 'Complete 3 lessons with 90%+ accuracy', target: 3 },
+        { title: 'Pass 4 lessons with 90%+ score', target: 4 },
+      ]
+    : [
+        { title: 'Obtén un puntaje de 90 % o más en 3 lecciones', target: 3 },
+        { title: 'Obtén un puntaje de 90 % o más en 2 lecciones', target: 2 },
+        { title: 'Completa 3 lecciones con 90 % o más de precisión', target: 3 },
+        { title: 'Supera 4 lecciones con puntaje de 90 % o más', target: 4 },
+      ];
+
+  const slot3Pool = isEn
+    ? [
+        { title: 'Answer correctly 5 times in a row in 5 lessons', target: 5 },
+        { title: 'Answer correctly 5 times in a row in 3 lessons', target: 3 },
+        { title: 'Answer correctly 5 times in a row in 4 lessons', target: 4 },
+        { title: 'Answer correctly 5 times in a row in 2 lessons', target: 2 },
+      ]
+    : [
+        {
+          title: 'Responde correctamente 5 veces seguidas en 5 lecciones',
+          target: 5,
+        },
+        {
+          title: 'Responde correctamente 5 veces seguidas en 3 lecciones',
+          target: 3,
+        },
+        {
+          title: 'Responde correctamente 5 veces seguidas en 4 lecciones',
+          target: 4,
+        },
+        {
+          title: 'Responde correctamente 5 veces seguidas en 2 lecciones',
+          target: 2,
+        },
+      ];
 
   const idx1 = seedOffset === 0 ? 0 : (dateHash + seedOffset) % slot1Pool.length;
   const idx2 =
@@ -841,16 +935,16 @@ function DailyRandomChallengesCard({
     <div className="space-y-2.5">
       <div className="flex items-center justify-between px-1">
         <h3 className="font-display text-sm sm:text-base font-extrabold text-white">
-          Desafíos del día
+          {getTranslation(lang, 'dailyChallenges')}
         </h3>
         <button
           type="button"
           onClick={onRandomizeSeed}
           className="text-[11px] font-mono font-bold text-[#1CB0F6] hover:underline cursor-pointer flex items-center gap-1"
-          title="Sortear nuevos desafíos aleatorios del día"
+          title={isEn ? 'Randomize daily challenges' : 'Sortear nuevos desafíos aleatorios del día'}
         >
           <RotateCcw className="w-3 h-3" />
-          <span>Aleatorios hoy</span>
+          <span>{getTranslation(lang, 'randomizeToday')}</span>
         </button>
       </div>
 
@@ -980,6 +1074,7 @@ function ModuleSummaryCard({
   totalUserXp,
   selectedModuleFilter,
   onSelectModule,
+  lang = 'es',
 }: {
   activeCourse: CourseId;
   sections: ArithmeticSection[];
@@ -988,7 +1083,9 @@ function ModuleSummaryCard({
   totalUserXp: number;
   selectedModuleFilter: ModuleId;
   onSelectModule: (mod: ModuleId) => void;
+  lang?: Language;
 }) {
+  const isEn = lang === 'en';
   const moduleMeta: {
     id: ModuleId;
     name: string;
@@ -1000,115 +1097,51 @@ function ModuleSummaryCard({
       ? [
           {
             id: 1,
-            name: 'Módulo 1',
-            shortName: 'Mód. 1',
-            subtitle: 'Años 50 y 60 en Colombia',
+            name: isEn ? 'Module 1' : 'Módulo 1',
+            shortName: 'M1',
+            subtitle: isEn ? '50s & 60s in Colombia' : 'Años 50 y 60 en Colombia',
             color: '#FF9600',
           },
           {
             id: 2,
-            name: 'Módulo 2',
-            shortName: 'Mód. 2',
-            subtitle: 'Tierra y Mov. Sociales',
+            name: isEn ? 'Module 2' : 'Módulo 2',
+            shortName: 'M2',
+            subtitle: isEn ? 'Land & Social Movements' : 'Tierra y Mov. Sociales',
             color: '#00CD9C',
           },
           {
             id: 3,
-            name: 'Módulo 3',
-            shortName: 'Mód. 3',
-            subtitle: 'Surgimiento del ELN',
+            name: isEn ? 'Module 3' : 'Módulo 3',
+            shortName: 'M3',
+            subtitle: isEn ? 'Rise of ELN' : 'Surgimiento del ELN',
             color: '#CE82FF',
           },
           {
             id: 4,
-            name: 'Módulo 4',
-            shortName: 'Mód. 4',
-            subtitle: 'Territorio y Comunidades',
+            name: isEn ? 'Module 4' : 'Módulo 4',
+            shortName: 'M4',
+            subtitle: isEn ? 'Territory & Communities' : 'Territorio y Comunidades',
             color: '#1CB0F6',
           },
           {
             id: 5,
-            name: 'Módulo 5',
-            shortName: 'Mód. 5',
-            subtitle: 'Memoria, DD. HH. y Paz',
+            name: isEn ? 'Module 5' : 'Módulo 5',
+            shortName: 'M5',
+            subtitle: isEn ? 'Memory, HR & Peace' : 'Memoria, DD. HH. y Paz',
             color: '#58CC02',
           },
         ]
-      : activeCourse === 'quimica'
-      ? [
-          {
-            id: 1,
-            name: 'Módulo 1',
-            shortName: 'Mód. 1',
-            subtitle: 'Materia y Energía',
-            color: '#00CD9C',
-          },
-          {
-            id: 2,
-            name: 'Módulo 2',
-            shortName: 'Mód. 2',
-            subtitle: 'Termoquímica y Tabla',
-            color: '#CE82FF',
-          },
-          {
-            id: 3,
-            name: 'Módulo 3',
-            shortName: 'Mód. 3',
-            subtitle: 'Partículas, Quarks y Rad.',
-            color: '#FF9600',
-          },
-        ]
-      : activeCourse === 'fisica'
-      ? [
-          {
-            id: 1,
-            name: 'Módulo 1',
-            shortName: 'Mód. 1',
-            subtitle: 'Trabajo, Ek, Ep y Transf.',
-            color: '#1CB0F6',
-          },
-          {
-            id: 2,
-            name: 'Módulo 2',
-            shortName: 'Mód. 2',
-            subtitle: 'Conservación, Cinemática y Newton',
-            color: '#CE82FF',
-          },
-          {
-            id: 3,
-            name: 'Módulo 3',
-            shortName: 'Mód. 3',
-            subtitle: 'Fluidos, Termo, Ondas y Elec.',
-            color: '#FF9600',
-          },
-        ]
-      : [
-          {
-            id: 1,
-            name: 'Módulo 1',
-            shortName: 'Mód. 1',
-            subtitle: 'Fundamentos y Álgebra',
-            color: '#1CB0F6',
-          },
-          {
-            id: 2,
-            name: 'Módulo 2',
-            shortName: 'Mód. 2',
-            subtitle: 'Funciones y Geometría',
-            color: '#CE82FF',
-          },
-          {
-            id: 3,
-            name: 'Módulo 3',
-            shortName: 'Mód. 3',
-            subtitle: 'Cálculo y EDOs',
-            color: '#FF9600',
-          },
-        ];
+      : sections.map((sec) => ({
+          id: sec.id,
+          name: isEn ? `Module ${sec.id}` : `Módulo ${sec.id}`,
+          shortName: `M${sec.id}`,
+          subtitle: sec.title.replace(/^Sección\s+\d+\s*·\s*/i, ''),
+          color: sec.colorHex,
+        }));
 
   const sectionModuleMap = new Map<number, ModuleId>();
   sections.forEach((sec) => {
-    sectionModuleMap.set(sec.id, (sec.moduleId ?? 1) as ModuleId);
+    sectionModuleMap.set(sec.id, activeCourse === 'sociales' ? (sec.moduleId ?? 1) : sec.id);
   });
 
   const rawStats = moduleMeta.map((m) => {
@@ -1297,76 +1330,6 @@ function ModuleSummaryCard({
   );
 }
 
-/** Custom SVG Math Owl/Cube Mascot inspired by the reference image */
-function MathMascotSvg({ className = 'w-24 h-24' }: { className?: string }) {
-  return (
-    <svg
-      className={`${className} drop-shadow-lg select-none`}
-      viewBox="0 0 120 120"
-      fill="none"
-      aria-hidden="true"
-    >
-      {/* Shadow */}
-      <ellipse cx="60" cy="108" rx="28" ry="6" fill="#000000" fillOpacity="0.45" />
-      {/* Left waving wing */}
-      <path
-        d="M22 62C12 50 14 34 24 30C30 28 34 38 34 48L22 62Z"
-        fill="#58CC02"
-        stroke="#46A302"
-        strokeWidth="3"
-      />
-      {/* Body */}
-      <rect
-        x="26"
-        y="30"
-        width="68"
-        height="66"
-        rx="30"
-        fill="#58CC02"
-        stroke="#46A302"
-        strokeWidth="4"
-      />
-      {/* Belly feather markings */}
-      <path
-        d="M46 76C49 79 53 79 56 76M64 76C67 79 71 79 74 76M55 84C58 87 62 87 65 84"
-        stroke="#78E026"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      {/* Right wing */}
-      <path
-        d="M94 54C104 58 106 74 96 82C90 86 86 78 88 66L94 54Z"
-        fill="#46A302"
-      />
-      {/* Eyes mask */}
-      <circle cx="46" cy="52" r="13" fill="#FFFFFF" />
-      <circle cx="74" cy="52" r="13" fill="#FFFFFF" />
-      {/* Pupils */}
-      <circle cx="48" cy="52" r="6.5" fill="#131F24" />
-      <circle cx="72" cy="52" r="6.5" fill="#131F24" />
-      <circle cx="50" cy="49" r="2.2" fill="#FFFFFF" />
-      <circle cx="74" cy="49" r="2.2" fill="#FFFFFF" />
-      {/* Beak */}
-      <path
-        d="M55 58H65L60 66L55 58Z"
-        fill="#FFC800"
-        stroke="#E59000"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      {/* Feet */}
-      <rect x="42" y="94" width="12" height="7" rx="3.5" fill="#FF9600" />
-      <rect x="66" y="94" width="12" height="7" rx="3.5" fill="#FF9600" />
-      {/* Floating arithmetic symbols */}
-      <text x="10" y="24" fill="#FFC800" fontSize="16" fontWeight="bold" fontFamily="monospace">
-        +
-      </text>
-      <text x="96" y="28" fill="#1CB0F6" fontSize="16" fontWeight="bold" fontFamily="monospace">
-        ÷
-      </text>
-    </svg>
-  );
-}
 
 /** Visual 2x2 or 2x3 Matrix Bracket Renderer for Section 6 (Matrices) */
 function MatrixBracketBox({
@@ -1633,7 +1596,7 @@ export default function App() {
       : activeCourse === 'fisica'
       ? 'physicsProgress'
       : 'mathProgress';
-  const currentCourseSections =
+  const rawCourseSections =
     activeCourse === 'sociales'
       ? SOCIALES_SECTIONS
       : activeCourse === 'quimica'
@@ -1641,7 +1604,7 @@ export default function App() {
       : activeCourse === 'fisica'
       ? PHYSICS_SECTIONS
       : ARITHMETIC_SECTIONS;
-  const currentCourseNodes =
+  const rawCourseNodes =
     activeCourse === 'sociales'
       ? SOCIALES_NODES
       : activeCourse === 'quimica'
@@ -1664,6 +1627,16 @@ export default function App() {
 
   // Navigation & UI state (shows 1 active module at a time to avoid clutter)
   const [activeTab, setActiveTab] = useState<BottomTab>('aprender');
+  const [lang, setLang] = useState<'es' | 'en'>('es');
+
+  const currentCourseSections = React.useMemo(
+    () => translateSections(rawCourseSections, lang),
+    [rawCourseSections, lang]
+  );
+  const currentCourseNodes = React.useMemo(
+    () => translateNodes(rawCourseNodes, lang),
+    [rawCourseNodes, lang]
+  );
   const [selectedModuleFilter, setSelectedModuleFilter] = useState<ModuleId>(1);
   const [showMobileStats, setShowMobileStats] = useState(false);
   const [selectedNode, setSelectedNode] = useState<ArithmeticNode | null>(null);
@@ -1697,6 +1670,41 @@ export default function App() {
   // Refs for auto-focusing keyboard input in lessons and practice
   const lessonInputRef = useRef<HTMLInputElement | null>(null);
   const drillInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Audio settings state (persisted in localStorage, controllable from Perfil)
+  const [audioMuted, setAudioMutedState] = useState<boolean>(() => isAudioMuted());
+  const [audioVolume, setAudioVolumeState] = useState<number>(() => getAudioVolume());
+
+  const handleToggleAudioMute = () => {
+    const nextMuted = !audioMuted;
+    setAudioMuted(nextMuted);
+    setAudioMutedState(nextMuted);
+    if (!nextMuted) {
+      playCorrectSound();
+    }
+  };
+
+  const handleChangeAudioVolume = (nextVol: number) => {
+    const clamped = Math.max(0, Math.min(1, nextVol));
+    setAudioVolume(clamped);
+    setAudioVolumeState(clamped);
+    if (clamped > 0 && audioMuted) {
+      setAudioMuted(false);
+      setAudioMutedState(false);
+    }
+  };
+
+  // Spaced Repetition ("repetición espaciada") state across all courses
+  const [allCourseNodeIndices, setAllCourseNodeIndices] = useState<
+    Record<CourseId, number>
+  >({
+    sociales: 0,
+    quimica: 0,
+    fisica: 0,
+    matematicas: 0,
+  });
+  const [spacedToastDismissed, setSpacedToastDismissed] = useState(false);
+  const [spacedRefreshTick, setSpacedRefreshTick] = useState(0);
 
   // Switch between Ciencias Sociales, Química, Física, and Matemáticas cleanly
   const handleSwitchCourse = (nextCourse: CourseId) => {
@@ -1851,6 +1859,64 @@ export default function App() {
         if (needsCommit) {
           await batch.commit();
         }
+
+        // Extract currentNodeIndex and updatedAt from all 4 courses for Spaced Repetition on login
+        const extractNodeIndex = (snap: typeof mathSnap) =>
+          snap.exists() ? ((snap.data() as CourseProgressData).currentNodeIndex ?? 0) : 0;
+        const extractUpdatedAtMs = (snap: typeof mathSnap): number | null => {
+          if (!snap.exists()) return null;
+          const raw = (snap.data() as { updatedAt?: { toMillis?: () => number } }).updatedAt;
+          return raw && typeof raw.toMillis === 'function' ? raw.toMillis() : null;
+        };
+
+        const indices: Record<CourseId, number> = {
+          matematicas: extractNodeIndex(mathSnap),
+          fisica: extractNodeIndex(physicsSnap),
+          quimica: extractNodeIndex(chemistrySnap),
+          sociales: extractNodeIndex(socialesSnap),
+        };
+        setAllCourseNodeIndices(indices);
+
+        const timestamps = [
+          extractUpdatedAtMs(mathSnap),
+          extractUpdatedAtMs(physicsSnap),
+          extractUpdatedAtMs(chemistrySnap),
+          extractUpdatedAtMs(socialesSnap),
+        ].filter((t): t is number => typeof t === 'number');
+        const oldestUpdatedAt =
+          timestamps.length > 0 ? Math.min(...timestamps) : null;
+
+        registerUserLoginSession(user.uid, oldestUpdatedAt);
+        syncCompletedNodesForCourse(
+          user.uid,
+          'matematicas',
+          ARITHMETIC_NODES,
+          indices.matematicas,
+          extractUpdatedAtMs(mathSnap)
+        );
+        syncCompletedNodesForCourse(
+          user.uid,
+          'fisica',
+          PHYSICS_NODES,
+          indices.fisica,
+          extractUpdatedAtMs(physicsSnap)
+        );
+        syncCompletedNodesForCourse(
+          user.uid,
+          'quimica',
+          CHEMISTRY_NODES,
+          indices.quimica,
+          extractUpdatedAtMs(chemistrySnap)
+        );
+        syncCompletedNodesForCourse(
+          user.uid,
+          'sociales',
+          SOCIALES_NODES,
+          indices.sociales,
+          extractUpdatedAtMs(socialesSnap)
+        );
+        setSpacedToastDismissed(false);
+        setSpacedRefreshTick((prev) => prev + 1);
       } catch (error) {
         handleFirestoreError(error, OperationType.WRITE, `socialesProgress/${user.uid}`);
       }
@@ -1895,6 +1961,17 @@ export default function App() {
         if (snap.exists()) {
           const data = snap.data() as CourseProgressData;
           setProgress(data);
+          setAllCourseNodeIndices((prev) => ({
+            ...prev,
+            [activeCourse]: data.currentNodeIndex,
+          }));
+          syncCompletedNodesForCourse(
+            uid,
+            activeCourse,
+            nodesList,
+            data.currentNodeIndex
+          );
+          setSpacedRefreshTick((prev) => prev + 1);
 
           const syncKey = `${activeCourse}:${data.currentNodeIndex}`;
           if (lastSyncedCourseNodeRef.current !== syncKey) {
@@ -2041,10 +2118,12 @@ export default function App() {
     if (isMatch) {
       setCheckStatus('correct');
       setCurrentStreakInLesson((prev) => prev + 1);
+      playCorrectSound();
     } else {
       setCheckStatus('wrong');
       setMistakesInLesson((prev) => prev + 1);
       setCurrentStreakInLesson(0);
+      playWrongSound();
       const nextHearts = Math.max(0, progress.hearts - 1);
       try {
         await updateDoc(doc(db, currentCourseCollection, currentUser.uid), {
@@ -2110,6 +2189,11 @@ export default function App() {
         earnedGems = isNewUnlock ? activeLessonNode.gemsReward : 2;
       }
 
+      const unlockedNewLevel = nextNodeIndex > progress.currentNodeIndex;
+      const previousLevelTier = Math.floor(progress.xp / 100);
+      const nextLevelTier = Math.floor((progress.xp + earnedXp) / 100);
+      const reachedNewXpLevel = nextLevelTier > previousLevelTier;
+
       try {
         await updateDoc(doc(db, currentCourseCollection, currentUser.uid), {
           currentNodeIndex: nextNodeIndex,
@@ -2118,7 +2202,25 @@ export default function App() {
           completedLessonsCount: Math.min(100000, progress.completedLessonsCount + 1),
           updatedAt: serverTimestamp(),
         });
+        recordLessonReviewed(
+          currentUser.uid,
+          activeCourse,
+          activeLessonNode.id,
+          activeLessonNode.index
+        );
+        recordRecentLessonCompletion(currentUser.uid, {
+          course: activeCourse,
+          node: activeLessonNode,
+          mistakesCount: mistakesInLesson,
+          xpEarned: earnedXp,
+        });
+        setSpacedRefreshTick((prev) => prev + 1);
         setLessonCompleted(true);
+        if (unlockedNewLevel || reachedNewXpLevel) {
+          playLevelUpSound();
+        } else {
+          playLessonCompleteSound();
+        }
       } catch (error) {
         handleFirestoreError(
           error,
@@ -2177,6 +2279,7 @@ export default function App() {
     const correct =
       drillOp === '+' ? drillA + drillB : drillOp === '−' ? drillA - drillB : drillA * drillB;
     if (normalizeMathAnswer(choice) === normalizeMathAnswer(String(correct))) {
+      playCorrectSound();
       setDrillFeedback('¡Correcto! +5 XP y +1 vida recuperada');
       try {
         await updateDoc(doc(db, currentCourseCollection, currentUser.uid), {
@@ -2193,6 +2296,7 @@ export default function App() {
       }
       generateNextDrill();
     } else {
+      playWrongSound();
       setDrillFeedback(`Casi: ${drillA} ${drillOp} ${drillB} = ${correct}. ¡Sigue intentando!`);
       setDrillTyped('');
     }
@@ -2382,10 +2486,10 @@ export default function App() {
         return;
       }
 
-      // Press 'm' or 'M' to cycle between modules (1..5 for Sociales, 1..3 for the rest)
+      // Press 'm' or 'M' to cycle between modules (1..5 for Sociales, 1..N for the rest)
       if (e.key === 'm' || e.key === 'M') {
         e.preventDefault();
-        const maxModules = activeCourse === 'sociales' ? 5 : 3;
+        const maxModules = activeCourse === 'sociales' ? 5 : currentCourseSections.length;
         setSelectedModuleFilter((prev) =>
           prev < maxModules ? ((prev + 1) as ModuleId) : 1
         );
@@ -2407,7 +2511,7 @@ export default function App() {
           setSelectedNode(nextNode);
           if (nextNode) {
             const sec = currentCourseSections.find((s) => s.id === nextNode.sectionId);
-            if (sec?.moduleId) setSelectedModuleFilter(sec.moduleId as ModuleId);
+            if (sec) setSelectedModuleFilter(activeCourse === 'sociales' ? (sec.moduleId ?? 1) : sec.id);
           }
           return;
         }
@@ -2420,7 +2524,7 @@ export default function App() {
           setSelectedNode(prevNode);
           if (prevNode) {
             const sec = currentCourseSections.find((s) => s.id === prevNode.sectionId);
-            if (sec?.moduleId) setSelectedModuleFilter(sec.moduleId as ModuleId);
+            if (sec) setSelectedModuleFilter(activeCourse === 'sociales' ? (sec.moduleId ?? 1) : sec.id);
           }
           return;
         }
@@ -2532,7 +2636,7 @@ export default function App() {
 
     if (lessonCompleted) {
       const accuracy = Math.max(
-        60,
+        0,
         Math.round(((totalQuestions - mistakesInLesson) / totalQuestions) * 100)
       );
       return (
@@ -2620,19 +2724,26 @@ export default function App() {
       );
     }
 
+    const activeLessonSection = currentCourseSections.find(
+      (s) => s.id === activeLessonNode.sectionId
+    );
+    const hasLongReadingOptions = currentQuestion.options.some(
+      (opt) => opt.length > 26
+    );
+
     return (
       <div className="min-h-screen bg-[#0A0E11] text-white flex flex-col justify-between">
         {/* Top Progress Header */}
-        <header className="w-full max-w-4xl mx-auto px-5 sm:px-8 pt-6 sm:pt-8 pb-3 flex items-center gap-4 sm:gap-6">
+        <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-6 pb-3 flex items-center gap-4 sm:gap-6 border-b border-[#1C272D]/80">
           <button
             type="button"
             onClick={() => setActiveLessonNode(null)}
-            className="text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer flex items-center gap-1"
+            className="text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#131F24] border border-[#26353D]"
             aria-label="Salir de la lección (Esc)"
             title="Salir (Esc)"
           >
-            <X className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.5]" />
-            <span className="hidden sm:inline font-mono text-[11px] text-neutral-500">
+            <X className="w-5 h-5 stroke-[2.5]" />
+            <span className="hidden sm:inline font-mono text-[11px] font-bold">
               ESC
             </span>
           </button>
@@ -2646,6 +2757,10 @@ export default function App() {
               <div className="absolute top-0.5 left-2 right-2 h-1 bg-[#78E026] rounded-full opacity-80" />
             </div>
           </div>
+
+          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#131F24] border border-[#26353D] font-mono text-xs font-extrabold text-neutral-300">
+            Pregunta {questionIndex + 1} / {totalQuestions}
+          </span>
 
           {activeLessonNode.isSkipExam && (
             <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#FFC800]/15 text-[#FFC800] font-mono text-xs font-extrabold">
@@ -2661,59 +2776,29 @@ export default function App() {
           </div>
         </header>
 
-        {/* Main Question Body */}
-        <main className="flex-1 w-full max-w-2xl mx-auto px-5 sm:px-8 py-4 sm:py-6 flex flex-col justify-center gap-6">
-          <div className="space-y-5">
-            <div className="space-y-1">
-              <h2 className="font-display text-xl sm:text-3xl font-extrabold text-white leading-snug">
-                {currentQuestion.prompt}
-              </h2>
-              <p className="text-xs font-mono text-neutral-400 flex items-center gap-1.5">
-                <Keyboard className="w-3.5 h-3.5 text-[#1CB0F6]" />
-                <span>
-                  Escribe la respuesta directamente con tu teclado, usa las flechas{' '}
-                  <strong className="text-neutral-200">← →</strong> para elegir opción y presiona{' '}
-                  <strong className="text-[#58CC02]">Enter</strong>
+        {/* Main Split Layout on PC: Left = Texto, Instrucciones y Guía | Right = Responder */}
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
+            {/* ============================================================== */}
+            {/* COLUMNA IZQUIERDA EN PC: TEXTO, INSTRUCCIONES Y GUÍA           */}
+            {/* ============================================================== */}
+            <section
+              aria-label="Texto, instrucciones y guía de la lección"
+              className="md:col-span-7 space-y-4"
+            >
+              <div className="flex items-center justify-between gap-2 px-1">
+                <span className="font-display text-xs font-extrabold uppercase tracking-wider text-[#1CB0F6] flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 shrink-0" />
+                  <span>Texto, Instrucciones y Guía</span>
                 </span>
-              </p>
-            </div>
-
-            {/* Question Layout A: Stacked Pattern Table */}
-            {currentQuestion.type === 'pattern_table' && currentQuestion.tableRows && (
-              <div className="rounded-2xl border-2 border-[#26353D] bg-[#131F24] divide-y-2 divide-[#26353D] overflow-hidden">
-                {currentQuestion.tableRows.map((row, idx) => (
-                  <div
-                    key={idx}
-                    className="px-5 sm:px-7 py-4 sm:py-5 font-mono text-lg sm:text-xl font-bold tracking-wide flex items-center flex-wrap gap-2"
-                  >
-                    <span className="text-neutral-200">{row.prefix}</span>
-                    {row.highlight && (
-                      <span className="text-[#CE82FF] underline decoration-dotted underline-offset-4">
-                        {row.highlight}
-                      </span>
-                    )}
-                    {row.isBlankRow && (
-                      <input
-                        ref={lessonInputRef}
-                        type="text"
-                        value={selectedOption ?? ''}
-                        disabled={checkStatus !== 'idle'}
-                        onChange={(e) => setSelectedOption(e.target.value)}
-                        placeholder="?"
-                        aria-label="Escribe tu respuesta con el teclado"
-                        className="w-28 sm:w-32 h-11 px-3 rounded-xl bg-[#0A0E11] border-2 border-[#1CB0F6] text-center font-mono text-lg sm:text-xl font-extrabold text-[#1CB0F6] placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-[#58CC02]"
-                      />
-                    )}
-                    {row.suffix && <span className="text-neutral-200">{row.suffix}</span>}
-                  </div>
-                ))}
+                <span className="font-mono text-[11px] text-neutral-400">
+                  {activeLessonNode.title}
+                </span>
               </div>
-            )}
 
-            {/* Question Layout B: Visual Illustration + Equation with Keyboard Input */}
-            {currentQuestion.type !== 'pattern_table' && (
-              <div className="space-y-5">
-                {currentQuestion.visualData && (
+              {/* Visual Illustration if question has diagrams/matrices/triangles */}
+              {currentQuestion.type !== 'pattern_table' &&
+                currentQuestion.visualData && (
                   <QuestionVisualIllustration
                     leftCount={currentQuestion.visualData.leftCount}
                     rightCount={currentQuestion.visualData.rightCount}
@@ -2725,133 +2810,236 @@ export default function App() {
                   />
                 )}
 
-                <div className="p-5 sm:p-7 rounded-2xl bg-[#131F24] border-2 border-[#26353D] flex items-center justify-center flex-wrap gap-2.5 font-mono text-2xl sm:text-3xl font-extrabold">
-                  <span className="text-white">{currentQuestion.equationPrefix}</span>
-                  <input
-                    ref={lessonInputRef}
-                    type="text"
-                    value={selectedOption ?? ''}
-                    disabled={checkStatus !== 'idle'}
-                    onChange={(e) => setSelectedOption(e.target.value)}
-                    placeholder="?"
-                    aria-label="Escribe tu respuesta con el teclado"
-                    className="w-28 sm:w-36 h-12 px-3 rounded-xl bg-[#0A0E11] border-2 border-[#1CB0F6] text-center font-mono text-2xl sm:text-3xl font-extrabold text-[#1CB0F6] placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-[#58CC02]"
-                  />
-                  {currentQuestion.equationSuffix && (
-                    <span className="text-white">{currentQuestion.equationSuffix}</span>
+              {/* Reading Text + Instructions + Section Guide (all in small print for reading) */}
+              <LessonReadingContextBox
+                course={activeCourse}
+                section={activeLessonSection}
+                node={activeLessonNode}
+                questionIndex={questionIndex}
+                lang={lang}
+              />
+            </section>
+
+            {/* ============================================================== */}
+            {/* COLUMNA DERECHA EN PC: RESPONDER                               */}
+            {/* ============================================================== */}
+            <section
+              aria-label="Panel para responder la pregunta"
+              className="md:col-span-5 md:sticky md:top-6 space-y-4"
+            >
+              <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 sm:p-6 space-y-5 shadow-xl">
+                {/* Top Header of Right Response Panel */}
+                <div className="flex items-center justify-between gap-2 pb-3 border-b border-[#26353D]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#58CC02]" />
+                    <span className="font-display text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#58CC02]">
+                      Responder
+                    </span>
+                  </div>
+                  <span className="font-mono text-[11px] font-bold text-[#FFC800] bg-[#0A0E11] px-2.5 py-1 rounded-lg border border-[#26353D]">
+                    Pregunta {questionIndex + 1} de {totalQuestions}
+                  </span>
+                </div>
+
+                {/* Question Prompt & Keyboard Hint inside the Right Response Panel */}
+                <div className="space-y-2">
+                  <h2
+                    className={`font-display font-extrabold text-white leading-relaxed ${
+                      currentQuestion.prompt.length > 90 || activeCourse === 'sociales'
+                        ? 'text-sm sm:text-base'
+                        : 'text-base sm:text-xl'
+                    }`}
+                  >
+                    {currentQuestion.prompt}
+                  </h2>
+                  <p className="text-[11px] font-mono text-neutral-400 flex items-center gap-1.5">
+                    <Keyboard className="w-3.5 h-3.5 text-[#1CB0F6] shrink-0" />
+                    <span>
+                      Elige con <strong className="text-neutral-200">1–4</strong> /{' '}
+                      <strong className="text-neutral-200">← →</strong> o escribe tu respuesta y pulsa{' '}
+                      <strong className="text-[#58CC02]">Enter</strong>
+                    </span>
+                  </p>
+                </div>
+
+                {/* Question Layout A: Stacked Pattern Table Input */}
+                {currentQuestion.type === 'pattern_table' &&
+                  currentQuestion.tableRows && (
+                    <div className="rounded-2xl border-2 border-[#26353D] bg-[#0A0E11] divide-y-2 divide-[#26353D] overflow-hidden">
+                      {currentQuestion.tableRows.map((row, idx) => (
+                        <div
+                          key={idx}
+                          className="px-4 py-3 font-mono text-xs sm:text-sm font-bold tracking-wide flex items-center flex-wrap gap-2"
+                        >
+                          <span className="text-neutral-200">{row.prefix}</span>
+                          {row.highlight && (
+                            <span className="text-[#CE82FF] underline decoration-dotted underline-offset-4">
+                              {row.highlight}
+                            </span>
+                          )}
+                          {row.isBlankRow && (
+                            <input
+                              ref={lessonInputRef}
+                              type="text"
+                              value={selectedOption ?? ''}
+                              disabled={checkStatus !== 'idle'}
+                              onChange={(e) => setSelectedOption(e.target.value)}
+                              placeholder="?"
+                              aria-label="Escribe tu respuesta con el teclado"
+                              className="min-w-[110px] flex-1 max-w-xs h-9 px-3 rounded-xl bg-[#131F24] border-2 border-[#1CB0F6] text-center font-mono text-xs sm:text-sm font-extrabold text-[#1CB0F6] placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-[#58CC02]"
+                            />
+                          )}
+                          {row.suffix && (
+                            <span className="text-neutral-200">{row.suffix}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                {/* Question Layout B: Equation / Text Answer Input */}
+                {currentQuestion.type !== 'pattern_table' && (
+                  <div className="p-3.5 rounded-2xl bg-[#0A0E11] border-2 border-[#26353D] flex items-center justify-center flex-wrap gap-2.5 font-mono text-xs sm:text-sm font-extrabold">
+                    <span className="text-neutral-300">
+                      {currentQuestion.equationPrefix}
+                    </span>
+                    <input
+                      ref={lessonInputRef}
+                      type="text"
+                      value={selectedOption ?? ''}
+                      disabled={checkStatus !== 'idle'}
+                      onChange={(e) => setSelectedOption(e.target.value)}
+                      placeholder="?"
+                      aria-label="Escribe tu respuesta con el teclado"
+                      className="min-w-[120px] flex-1 h-9 px-3 rounded-xl bg-[#131F24] border-2 border-[#1CB0F6] text-center font-mono text-xs sm:text-sm font-extrabold text-[#1CB0F6] placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-[#58CC02]"
+                    />
+                    {currentQuestion.equationSuffix && (
+                      <span className="text-neutral-300">
+                        {currentQuestion.equationSuffix}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Option Tiles inside the Right Column */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 block">
+                    Opciones de respuesta (clic o teclas 1–{currentQuestion.options.length}):
+                  </span>
+                  <div
+                    className={
+                      hasLongReadingOptions
+                        ? 'grid grid-cols-1 gap-2.5'
+                        : 'grid grid-cols-1 sm:grid-cols-2 gap-2.5'
+                    }
+                  >
+                    {currentQuestion.options.map((option, idx) => {
+                      const isSelected =
+                        selectedOption !== null &&
+                        normalizeMathAnswer(selectedOption) ===
+                          normalizeMathAnswer(option);
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          disabled={checkStatus !== 'idle'}
+                          onClick={() => {
+                            setSelectedOption(option);
+                            lessonInputRef.current?.focus();
+                          }}
+                          className={`${
+                            hasLongReadingOptions
+                              ? 'w-full px-3.5 py-3 rounded-xl font-sans text-xs font-semibold leading-relaxed text-left'
+                              : 'w-full px-3.5 py-3 rounded-xl font-mono text-xs sm:text-sm font-extrabold text-left'
+                          } transition-all cursor-pointer flex items-start justify-between gap-2.5 ${
+                            isSelected
+                              ? 'bg-[#1CB0F6]/20 border-2 border-b-4 border-[#1CB0F6] text-[#1CB0F6]'
+                              : 'bg-[#0A0E11] hover:bg-[#1A2A32] border-2 border-b-4 border-[#2E3E46] text-neutral-100 active:border-b-2 active:translate-y-0.5'
+                          }`}
+                        >
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#131F24] text-neutral-400 border border-[#26353D] shrink-0 mt-0.5">
+                            {idx + 1}
+                          </span>
+                          <span className="flex-1 text-left">{option}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Integrated Check / Feedback & Continue Controls on the Right Side */}
+                <div className="pt-2 border-t border-[#26353D] space-y-3">
+                  {checkStatus === 'idle' ? (
+                    <button
+                      type="button"
+                      disabled={!selectedOption || !selectedOption.trim()}
+                      onClick={handleCheckAnswer}
+                      className={`w-full py-3.5 rounded-2xl font-extrabold text-xs sm:text-sm tracking-wider uppercase transition-all ${
+                        selectedOption && selectedOption.trim()
+                          ? 'bg-[#58CC02] hover:bg-[#61E002] border-b-4 border-[#46A302] text-black cursor-pointer active:border-b-0 active:translate-y-1'
+                          : 'bg-[#202F36] text-[#52656D] cursor-not-allowed'
+                      }`}
+                    >
+                      COMPROBAR RESPUESTA (ENTER)
+                    </button>
+                  ) : (
+                    <div
+                      className={`rounded-2xl p-4 border-2 space-y-3 ${
+                        checkStatus === 'correct'
+                          ? 'bg-[#0F291E] border-[#58CC02]'
+                          : 'bg-[#2D1215] border-[#FF4B4B]'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                            checkStatus === 'correct'
+                              ? 'bg-[#58CC02] text-black'
+                              : 'bg-[#FF4B4B] text-white'
+                          }`}
+                        >
+                          {checkStatus === 'correct' ? (
+                            <Check className="w-5 h-5 stroke-[3]" />
+                          ) : (
+                            <X className="w-5 h-5 stroke-[3]" />
+                          )}
+                        </div>
+                        <div className="space-y-1 min-w-0">
+                          <p
+                            className={`font-display font-extrabold text-sm sm:text-base ${
+                              checkStatus === 'correct'
+                                ? 'text-[#58CC02]'
+                                : 'text-[#FF4B4B]'
+                            }`}
+                          >
+                            {checkStatus === 'correct'
+                              ? '¡Excelente trabajo!'
+                              : `Respuesta correcta: ${currentQuestion.correctAnswer}`}
+                          </p>
+                          <p className="text-[11px] sm:text-xs text-neutral-200 leading-relaxed">
+                            {currentQuestion.explanation}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleContinueLesson}
+                        className={`w-full py-3 rounded-xl font-extrabold text-xs sm:text-sm tracking-wider uppercase transition-all cursor-pointer active:translate-y-0.5 ${
+                          checkStatus === 'correct'
+                            ? 'bg-[#58CC02] hover:bg-[#61E002] border-b-4 border-[#46A302] text-black'
+                            : 'bg-[#FF4B4B] hover:bg-[#FF6262] border-b-4 border-[#CC3B3B] text-white'
+                        }`}
+                      >
+                        CONTINUAR (ENTER)
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Tactile 3D Option Tiles with Keyboard Shortcut Indicators */}
-          <div className="py-1 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-            {currentQuestion.options.map((option, idx) => {
-              const isSelected =
-                selectedOption !== null &&
-                normalizeMathAnswer(selectedOption) === normalizeMathAnswer(option);
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  disabled={checkStatus !== 'idle'}
-                  onClick={() => {
-                    setSelectedOption(option);
-                    lessonInputRef.current?.focus();
-                  }}
-                  className={`min-w-[96px] sm:min-w-[116px] px-5 py-3.5 sm:py-4 rounded-2xl font-mono text-lg sm:text-xl font-extrabold transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                    isSelected
-                      ? 'bg-[#1CB0F6]/20 border-2 border-b-4 border-[#1CB0F6] text-[#1CB0F6]'
-                      : 'bg-[#131F24] hover:bg-[#1A2A32] border-2 border-b-4 border-[#2E3E46] text-white active:border-b-2 active:translate-y-0.5'
-                  }`}
-                >
-                  <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-[#0A0E11] text-neutral-400 border border-[#26353D]">
-                    {idx + 1}
-                  </span>
-                  <span className="flex-1 text-center">{option}</span>
-                </button>
-              );
-            })}
+            </section>
           </div>
         </main>
-
-        {/* Bottom Check / Feedback Bar */}
-        <footer
-          className={`w-full border-t-2 transition-colors p-5 sm:py-6 ${
-            checkStatus === 'correct'
-              ? 'bg-[#0F291E] border-[#58CC02]'
-              : checkStatus === 'wrong'
-              ? 'bg-[#2D1215] border-[#FF4B4B]'
-              : 'bg-[#0A0E11] border-[#1C272D]'
-          }`}
-        >
-          <div className="max-w-4xl mx-auto">
-            {checkStatus === 'idle' ? (
-              <div className="flex items-center justify-between gap-4">
-                <span className="hidden sm:inline text-xs font-mono text-neutral-400">
-                  Teclado: escribe el valor o usa ← → y pulsa Enter
-                </span>
-                <button
-                  type="button"
-                  disabled={!selectedOption || !selectedOption.trim()}
-                  onClick={handleCheckAnswer}
-                  className={`w-full sm:w-56 py-3.5 rounded-2xl font-extrabold text-sm tracking-wider uppercase transition-all ${
-                    selectedOption && selectedOption.trim()
-                      ? 'bg-[#58CC02] hover:bg-[#61E002] border-b-4 border-[#46A302] text-black cursor-pointer active:border-b-0 active:translate-y-1'
-                      : 'bg-[#202F36] text-[#52656D] cursor-not-allowed'
-                  }`}
-                >
-                  COMPROBAR (ENTER)
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-start sm:items-center gap-3.5">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                      checkStatus === 'correct'
-                        ? 'bg-[#58CC02] text-black'
-                        : 'bg-[#FF4B4B] text-white'
-                    }`}
-                  >
-                    {checkStatus === 'correct' ? (
-                      <Check className="w-6 h-6 stroke-[3]" />
-                    ) : (
-                      <X className="w-6 h-6 stroke-[3]" />
-                    )}
-                  </div>
-                  <div className="space-y-0.5">
-                    <p
-                      className={`font-display font-extrabold text-base sm:text-lg ${
-                        checkStatus === 'correct' ? 'text-[#58CC02]' : 'text-[#FF4B4B]'
-                      }`}
-                    >
-                      {checkStatus === 'correct'
-                        ? '¡Excelente trabajo!'
-                        : `Respuesta correcta: ${currentQuestion.correctAnswer}`}
-                    </p>
-                    <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed">
-                      {currentQuestion.explanation}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleContinueLesson}
-                  className={`w-full sm:w-56 py-3.5 rounded-2xl font-extrabold text-sm tracking-wider uppercase transition-all cursor-pointer active:translate-y-0.5 shrink-0 ${
-                    checkStatus === 'correct'
-                      ? 'bg-[#58CC02] hover:bg-[#61E002] border-b-4 border-[#46A302] text-black'
-                      : 'bg-[#FF4B4B] hover:bg-[#FF6262] border-b-4 border-[#CC3B3B] text-white'
-                  }`}
-                >
-                  CONTINUAR (ENTER)
-                </button>
-              </div>
-            )}
-          </div>
-        </footer>
       </div>
     );
   }
@@ -2861,6 +3049,109 @@ export default function App() {
   // ============================================================================
   const currentActiveNode =
     currentCourseNodes[Math.min(progress.currentNodeIndex, currentCourseNodes.length - 1)];
+
+  // Compute Spaced Repetition suggestions across all courses
+  const spacedStoreSnapshot = currentUser
+    ? loadSpacedStore(currentUser.uid)
+    : null;
+  const spacedSuggestions: SpacedRepetitionSuggestion[] =
+    currentUser && spacedRefreshTick >= 0
+      ? getSpacedRepetitionSuggestions(
+          currentUser.uid,
+          activeCourse,
+          {
+            sociales: SOCIALES_NODES,
+            quimica: CHEMISTRY_NODES,
+            fisica: PHYSICS_NODES,
+            matematicas: ARITHMETIC_NODES,
+          },
+          {
+            ...allCourseNodeIndices,
+            [activeCourse]: progress.currentNodeIndex,
+          }
+        )
+      : [];
+
+  const handleStartSpacedReview = (suggestion: SpacedRepetitionSuggestion) => {
+    if (suggestion.course !== activeCourse) {
+      setActiveCourse(suggestion.course);
+    }
+    const targetSections =
+      suggestion.course === 'sociales'
+        ? SOCIALES_SECTIONS
+        : suggestion.course === 'quimica'
+        ? CHEMISTRY_SECTIONS
+        : suggestion.course === 'fisica'
+        ? PHYSICS_SECTIONS
+        : ARITHMETIC_SECTIONS;
+    const sec = targetSections.find((s) => s.id === suggestion.node.sectionId);
+    if (sec?.moduleId) {
+      setSelectedModuleFilter(sec.moduleId as ModuleId);
+    }
+    setActiveTab('aprender');
+    startLesson(suggestion.node);
+  };
+
+  const handleSimulateSpacedDays = (extraDays: number) => {
+    if (!currentUser) return;
+    addSimulatedDaysAfterLogin(currentUser.uid, extraDays);
+    setSpacedToastDismissed(false);
+    setSpacedRefreshTick((prev) => prev + 1);
+  };
+
+  const handleResetSpacedSimulation = () => {
+    if (!currentUser) return;
+    resetSimulatedDays(currentUser.uid);
+    setSpacedRefreshTick((prev) => prev + 1);
+  };
+
+  // Compute the last 5 completed lessons for Historial Reciente in Perfil
+  const recentFiveLessons: RecentLessonHistoryItem[] =
+    currentUser && spacedRefreshTick >= 0
+      ? getRecentFiveLessons(
+          currentUser.uid,
+          {
+            sociales: SOCIALES_NODES,
+            quimica: CHEMISTRY_NODES,
+            fisica: PHYSICS_NODES,
+            matematicas: ARITHMETIC_NODES,
+          },
+          {
+            ...allCourseNodeIndices,
+            [activeCourse]: progress.currentNodeIndex,
+          }
+        )
+      : [];
+
+  const handleReplayRecentLesson = (item: RecentLessonHistoryItem) => {
+    const courseNodesMap = {
+      sociales: SOCIALES_NODES,
+      quimica: CHEMISTRY_NODES,
+      fisica: PHYSICS_NODES,
+      matematicas: ARITHMETIC_NODES,
+    };
+    const courseSectionsMap = {
+      sociales: SOCIALES_SECTIONS,
+      quimica: CHEMISTRY_SECTIONS,
+      fisica: PHYSICS_SECTIONS,
+      matematicas: ARITHMETIC_SECTIONS,
+    };
+    const nodes = courseNodesMap[item.course] || [];
+    const targetNode =
+      nodes.find((n) => n.id === item.nodeId) || nodes[item.nodeIndex] || nodes[0];
+    if (!targetNode) return;
+
+    if (item.course !== activeCourse) {
+      setActiveCourse(item.course);
+    }
+    const sections = courseSectionsMap[item.course] || [];
+    const sec = sections.find((s) => s.id === targetNode.sectionId);
+    if (sec?.moduleId) {
+      setSelectedModuleFilter(sec.moduleId as ModuleId);
+    }
+    setActiveTab('aprender');
+    startLesson(targetNode);
+  };
 
   const navItems: {
     id: BottomTab;
@@ -2872,35 +3163,35 @@ export default function App() {
     {
       id: 'aprender',
       keyNum: '1',
-      label: 'APRENDER',
+      label: getTranslation(lang, 'tabLearn').toUpperCase(),
       icon: <Home className="w-6 h-6 shrink-0" />,
       inactiveColor: 'text-neutral-400',
     },
     {
       id: 'practica',
       keyNum: '2',
-      label: 'PRÁCTICA',
+      label: getTranslation(lang, 'tabPractice').toUpperCase(),
       icon: <Dumbbell className="w-6 h-6 shrink-0" />,
       inactiveColor: 'text-[#1CB0F6]',
     },
     {
       id: 'guia',
       keyNum: '3',
-      label: 'GUÍA',
+      label: getTranslation(lang, 'tabGuide').toUpperCase(),
       icon: <BookOpen className="w-6 h-6 shrink-0" />,
       inactiveColor: 'text-[#CE82FF]',
     },
     {
       id: 'logros',
       keyNum: '4',
-      label: 'LOGROS',
+      label: getTranslation(lang, 'tabAchievements').toUpperCase(),
       icon: <Trophy className="w-6 h-6 shrink-0" />,
       inactiveColor: 'text-[#FFC800]',
     },
     {
       id: 'perfil',
       keyNum: '5',
-      label: 'PERFIL',
+      label: getTranslation(lang, 'tabProfile').toUpperCase(),
       icon: <MoreHorizontal className="w-6 h-6 shrink-0" />,
       inactiveColor: 'text-[#CE82FF]',
     },
@@ -2916,97 +3207,48 @@ export default function App() {
       ? [
           {
             id: 1,
-            label: 'Mód. 1',
-            sub: 'Años 50–60',
+            label: lang === 'es' ? 'Mód. 1' : 'Mod. 1',
+            sub: lang === 'es' ? 'Años 50–60' : '50s & 60s',
             activeBg: 'bg-[#FF9600] text-black',
           },
           {
             id: 2,
-            label: 'Mód. 2',
-            sub: 'Tierra y Mov.',
+            label: lang === 'es' ? 'Mód. 2' : 'Mod. 2',
+            sub: lang === 'es' ? 'Tierra y Mov.' : 'Land & Mov.',
             activeBg: 'bg-[#00CD9C] text-black',
           },
           {
             id: 3,
-            label: 'Mód. 3',
-            sub: 'Origen ELN',
+            label: lang === 'es' ? 'Mód. 3' : 'Mod. 3',
+            sub: lang === 'es' ? 'Origen ELN' : 'ELN Origin',
             activeBg: 'bg-[#CE82FF] text-black',
           },
           {
             id: 4,
-            label: 'Mód. 4',
-            sub: 'Territorio',
+            label: lang === 'es' ? 'Mód. 4' : 'Mod. 4',
+            sub: lang === 'es' ? 'Territorio' : 'Territory',
             activeBg: 'bg-[#1CB0F6] text-black',
           },
           {
             id: 5,
-            label: 'Mód. 5',
-            sub: 'DD. HH. y Paz',
+            label: lang === 'es' ? 'Mód. 5' : 'Mod. 5',
+            sub: lang === 'es' ? 'DD. HH. y Paz' : 'Human Rights',
             activeBg: 'bg-[#58CC02] text-black',
           },
         ]
-      : activeCourse === 'quimica'
-      ? [
-          {
-            id: 1,
-            label: 'Módulo 1',
-            sub: 'Materia y Energía',
-            activeBg: 'bg-[#00CD9C] text-black',
-          },
-          {
-            id: 2,
-            label: 'Módulo 2',
-            sub: 'Termoquímica y Tabla',
-            activeBg: 'bg-[#CE82FF] text-black',
-          },
-          {
-            id: 3,
-            label: 'Módulo 3',
-            sub: 'Partículas y Rad.',
-            activeBg: 'bg-[#FF9600] text-black',
-          },
-        ]
-      : activeCourse === 'fisica'
-      ? [
-          {
-            id: 1,
-            label: 'Módulo 1',
-            sub: 'Trabajo y Energía',
-            activeBg: 'bg-[#1CB0F6] text-black',
-          },
-          {
-            id: 2,
-            label: 'Módulo 2',
-            sub: 'Cinemática y Newton',
-            activeBg: 'bg-[#CE82FF] text-black',
-          },
-          {
-            id: 3,
-            label: 'Módulo 3',
-            sub: 'Termo, Ondas y Elec.',
-            activeBg: 'bg-[#FF9600] text-black',
-          },
-        ]
-      : [
-          {
-            id: 1,
-            label: 'Módulo 1',
-            sub: 'Fundamentos',
-            activeBg: 'bg-[#1CB0F6] text-black',
-          },
-          {
-            id: 2,
-            label: 'Módulo 2',
-            sub: 'Funciones y Geom.',
-            activeBg: 'bg-[#CE82FF] text-black',
-          },
-          {
-            id: 3,
-            label: 'Módulo 3',
-            sub: 'Cálculo y EDOs',
-            activeBg: 'bg-[#FF9600] text-black',
-          },
-        ];
+      : currentCourseSections.map((sec) => ({
+          id: sec.id as ModuleId,
+          label: lang === 'es' ? `Mód. ${sec.id}` : `Mod. ${sec.id}`,
+          sub: sec.title.replace(/^Sección\s+\d+\s*·\s*/i, '').slice(0, 14),
+          activeBg:
+            sec.id % 4 === 1
+              ? 'bg-[#00CD9C] text-black'
+              : sec.id % 4 === 2
+              ? 'bg-[#CE82FF] text-black'
+              : sec.id % 4 === 3
+              ? 'bg-[#FF9600] text-black'
+              : 'bg-[#1CB0F6] text-black',
+        }));
 
   const activeCourseLevelCount = Math.max(1, progress.currentNodeIndex);
 
@@ -3055,7 +3297,7 @@ export default function App() {
                   </span>
                   <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mt-0.5">
                     {activeCourse === 'sociales'
-                      ? '5 Mód. · 20 Secc.'
+                      ? '5 Mód. · 25 Secc.'
                       : activeCourse === 'quimica'
                       ? '3 Mód. · 22 Secc.'
                       : '3 Mód. · 20 Secc.'}
@@ -3098,31 +3340,31 @@ export default function App() {
           <div className="px-3 py-3 rounded-2xl bg-[#131F24] border border-[#26353D] space-y-2 text-[11px] text-neutral-400">
             <div className="flex items-center gap-1.5 font-bold text-white">
               <Keyboard className="w-3.5 h-3.5 text-[#58CC02]" />
-              <span>Atajos de Teclado</span>
+              <span>{lang === 'es' ? 'Atajos de Teclado' : 'Keyboard Shortcuts'}</span>
             </div>
             <div className="space-y-1 font-mono text-[10px]">
               <p className="flex justify-between">
-                <span>Empezar lección:</span>
+                <span>{lang === 'es' ? 'Empezar lección:' : 'Start lesson:'}</span>
                 <span className="text-[#58CC02]">Enter</span>
               </p>
               <p className="flex justify-between">
-                <span>Mover por nodos:</span>
+                <span>{lang === 'es' ? 'Mover por nodos:' : 'Move nodes:'}</span>
                 <span className="text-[#1CB0F6]">↑ ↓</span>
               </p>
               <p className="flex justify-between">
-                <span>Examen de salto:</span>
-                <span className="text-[#FFC800]">Tecla S</span>
+                <span>{lang === 'es' ? 'Examen de salto:' : 'Skip exam:'}</span>
+                <span className="text-[#FFC800]">S Key</span>
               </p>
               <p className="flex justify-between">
-                <span>Cambiar módulo:</span>
-                <span className="text-[#CE82FF]">Tecla M</span>
+                <span>{lang === 'es' ? 'Cambiar módulo:' : 'Change module:'}</span>
+                <span className="text-[#CE82FF]">M Key</span>
               </p>
               <p className="flex justify-between">
-                <span>Cambiar curso:</span>
-                <span className="text-[#00CD9C]">Tecla C</span>
+                <span>{lang === 'es' ? 'Cambiar curso:' : 'Change course:'}</span>
+                <span className="text-[#00CD9C]">C Key</span>
               </p>
               <p className="flex justify-between">
-                <span>Cambiar pestaña:</span>
+                <span>{lang === 'es' ? 'Cambiar pestaña:' : 'Change tab:'}</span>
                 <span className="text-neutral-200">1 - 5</span>
               </p>
             </div>
@@ -3133,7 +3375,7 @@ export default function App() {
         <div className="pt-4 border-t-2 border-[#1C272D] space-y-3 px-2">
           <div className="truncate">
             <p className="text-xs font-extrabold text-white truncate">
-              {currentUser.displayName || 'Estudiante'}
+              {currentUser.displayName || (lang === 'es' ? 'Estudiante' : 'Student')}
             </p>
             <p className="text-[11px] font-mono text-neutral-500 truncate">
               {currentUser.email}
@@ -3145,7 +3387,7 @@ export default function App() {
             className="w-full py-2.5 px-3 rounded-xl bg-[#131F24] hover:bg-[#2D1215] border border-[#26353D] hover:border-[#FF4B4B]/40 text-xs font-extrabold text-neutral-400 hover:text-[#FF4B4B] flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
-            <span>Cerrar sesión</span>
+            <span>{getTranslation(lang, 'signOutBtn')}</span>
           </button>
         </div>
       </aside>
@@ -3154,7 +3396,7 @@ export default function App() {
       {/* MOBILE TOP STATUS BAR (Hidden on xl where right sidebar shows it)    */}
       {/* Matches image_f7da1fd4.png & image_4899740f.png                      */}
       {/* ==================================================================== */}
-      <header className="xl:hidden sticky top-0 z-30 bg-[#0A0E11]/95 backdrop-blur-md border-b border-[#1C272D] px-4 py-2.5 flex items-center justify-between">
+      <header className="2xl:hidden sticky top-0 z-30 bg-[#0A0E11]/95 backdrop-blur-md border-b border-[#1C272D] px-4 py-2.5 flex items-center justify-between">
         <CourseSelectorDropdown
           activeCourse={activeCourse}
           levelCount={activeCourseLevelCount}
@@ -3195,9 +3437,9 @@ export default function App() {
       {/* CENTER CONTENT STAGE + RIGHT WIDGETS SIDEBAR ON PC                   */}
       {/* ==================================================================== */}
       <div className="flex-1 flex justify-center min-w-0">
-        <div className="w-full max-w-7xl flex justify-center gap-8 px-4 sm:px-6 lg:px-8 py-6 md:py-10">
+        <div className="w-full max-w-[1440px] flex justify-center gap-6 lg:gap-8 px-4 sm:px-6 lg:px-8 py-6 md:py-8">
           {/* Center Column: Node Tree or Selected Tab View */}
-          <main className="w-full max-w-2xl pb-28 md:pb-16">
+          <main className="w-full max-w-5xl flex-1 min-w-0 pb-28 md:pb-16">
             {/* ============================================================== */}
             {/* TAB 1: ÁRBOL DE NODOS DEL CURSO ACTIVO (1 MÓDULO A LA VEZ)     */}
             {/* ============================================================== */}
@@ -3239,11 +3481,11 @@ export default function App() {
                       })}
                     </div>
 
-                    {/* Collapsible Stats Toggle for Mobile / Tablet (< xl) */}
+                    {/* Collapsible Stats Toggle for screens < 2xl */}
                     <button
                       type="button"
                       onClick={() => setShowMobileStats((prev) => !prev)}
-                      className="xl:hidden px-3.5 py-3 rounded-2xl bg-[#131F24] hover:bg-[#202F36] border-2 border-[#26353D] text-xs font-extrabold text-neutral-200 flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap"
+                      className="2xl:hidden px-3.5 py-3 rounded-2xl bg-[#131F24] hover:bg-[#202F36] border-2 border-[#26353D] text-xs font-extrabold text-neutral-200 flex items-center gap-1.5 shrink-0 cursor-pointer whitespace-nowrap"
                       title="Mostrar u ocultar desafíos del día, potenciadores y progreso"
                     >
                       <BarChart3 className="w-4 h-4 text-[#58CC02]" />
@@ -3256,9 +3498,9 @@ export default function App() {
                     </button>
                   </div>
 
-                  {/* Mobile / Tablet Collapsible Drawer with Daily Quests, Potenciadores & Module Summary */}
+                  {/* Collapsible Drawer with Daily Quests, Potenciadores & Module Summary */}
                   {showMobileStats && (
-                    <div className="xl:hidden space-y-4 pt-1">
+                    <div className="2xl:hidden space-y-4 pt-1">
                       <DailyRandomChallengesCard
                         seedOffset={dailyChallengeSeedOffset}
                         onRandomizeSeed={() =>
@@ -3271,6 +3513,7 @@ export default function App() {
                         comboFiveLessonsCount={
                           comboFiveLessonsCount + progress.completedLessonsCount
                         }
+                        lang={lang}
                       />
                       <PotenciadoresStreakFreezeSection
                         equippedCount={streakFreezesEquipped}
@@ -3278,8 +3521,9 @@ export default function App() {
                         onToggleOrRefill={() =>
                           setStreakFreezesEquipped((prev) => (prev >= 2 ? 1 : 2))
                         }
+                        lang={lang}
                       />
-                      <DailyGoalRingChart xp={progress.xp} goal={DAILY_XP_GOAL} />
+                      <DailyGoalRingChart xp={progress.xp} goal={DAILY_XP_GOAL} lang={lang} />
                       <ModuleSummaryCard
                         activeCourse={activeCourse}
                         sections={currentCourseSections}
@@ -3291,6 +3535,7 @@ export default function App() {
                           setSelectedModuleFilter(mod);
                           setShowMobileStats(false);
                         }}
+                        lang={lang}
                       />
                     </div>
                   )}
@@ -3301,64 +3546,53 @@ export default function App() {
                       {activeCourse === 'sociales' ? (
                         <>
                           {selectedModuleFilter === 1 &&
-                            'Módulo 1 · Contexto Político y Social de Colombia en las Décadas de 1950 y 1960'}
+                            (lang === 'es'
+                              ? 'Módulo 1 · Contexto Político y Social de Colombia en las Décadas de 1950 y 1960'
+                              : 'Module 1 · Political & Social Context of Colombia in the 1950s & 1960s')}
                           {selectedModuleFilter === 2 &&
-                            'Módulo 2 · Causas, Tensiones Agrarias y Movimientos Sociales del Conflicto'}
+                            (lang === 'es'
+                              ? 'Módulo 2 · Causas, Tensiones Agrarias y Movimientos Sociales del Conflicto'
+                              : 'Module 2 · Agrarian Tensions & Social Movements of the Conflict')}
                           {selectedModuleFilter === 3 &&
-                            'Módulo 3 · Antecedentes y Surgimiento Histórico del ELN (1964–1965)'}
+                            (lang === 'es'
+                              ? 'Módulo 3 · Antecedentes y Surgimiento Histórico del ELN (1964–1965)'
+                              : 'Module 3 · Background & Historical Emergence of the ELN (1964–1965)')}
                           {selectedModuleFilter === 4 &&
-                            'Módulo 4 · Transformaciones Territoriales y Efectos en Comunidades'}
+                            (lang === 'es'
+                              ? 'Módulo 4 · Transformaciones Territoriales y Efectos en Comunidades'
+                              : 'Module 4 · Territorial Transformations & Community Impacts')}
                           {selectedModuleFilter === 5 &&
-                            'Módulo 5 · Memoria Histórica, Derechos Humanos, No Repetición y Paz'}
-                        </>
-                      ) : activeCourse === 'quimica' ? (
-                        <>
-                          {selectedModuleFilter === 1 &&
-                            'Módulo 1 · Cambios Físicos y Químicos, Materia-Energía y Transferencia I'}
-                          {selectedModuleFilter === 2 &&
-                            'Módulo 2 · Calorimetría, Reacciones Exo/Endotérmicas y Tabla Periódica'}
-                          {selectedModuleFilter === 3 &&
-                            'Módulo 3 · Partículas Fundamentales, Quarks, Radiación y Semidesintegración'}
-                        </>
-                      ) : activeCourse === 'fisica' ? (
-                        <>
-                          {selectedModuleFilter === 1 &&
-                            'Módulo 1 · Trabajo Mecánico, Energía Cinética, Potencial y Transformación'}
-                          {selectedModuleFilter === 2 &&
-                            'Módulo 2 · Conservación, Eficiencia, Cinemática, Leyes de Newton y Gravitación'}
-                          {selectedModuleFilter === 3 &&
-                            'Módulo 3 · Hidrostática, Termodinámica, Ondas, Electrostática, Circuitos y Óptica'}
+                            (lang === 'es'
+                              ? 'Módulo 5 · Memoria Histórica, Derechos Humanos, No Repetición y Paz'
+                              : 'Module 5 · Historical Memory, Human Rights, Non-Repetition & Peace')}
                         </>
                       ) : (
-                        <>
-                          {selectedModuleFilter === 1 &&
-                            'Módulo 1 · Aritmética, Potencias, Fracciones, Álgebra y Matrices'}
-                          {selectedModuleFilter === 2 &&
-                            'Módulo 2 · Funciones, Geometría Plana, Trigonometría y Teoremas'}
-                          {selectedModuleFilter === 3 &&
-                            'Módulo 3 · Derivadas, Integrales, Límites, Cálculo y EDOs'}
-                        </>
+                        <span>
+                          {lang === 'es' ? `Módulo ${selectedModuleFilter}` : `Module ${selectedModuleFilter}`} ·{' '}
+                          {currentCourseSections.find((s) => s.id === selectedModuleFilter)?.title.replace(/^Sección\s+\d+\s*·\s*/i, '') || ''}
+                        </span>
                       )}
                     </span>
                     <span className="font-mono text-[11px] text-neutral-500 whitespace-nowrap ml-2">
-                      {activeCourse === 'sociales'
-                        ? '4 secciones'
-                        : activeCourse === 'quimica'
-                        ? selectedModuleFilter === 2
-                          ? '8 secciones'
-                          : '7 secciones'
-                        : selectedModuleFilter === 1
-                        ? '6 secciones'
-                        : '7 secciones'}{' '}
-                      · Tecla M
+                      {lang === 'es' ? 'Presiona M para cambiar módulo' : 'Press M to change module'}
                     </span>
                   </div>
+                  {/* Compact Spaced Repetition Login Notification */}
+                  <SpacedRepetitionToast
+                    suggestions={spacedSuggestions}
+                    dismissed={spacedToastDismissed}
+                    simulatedDaysOffset={spacedStoreSnapshot?.simulatedDaysOffset ?? 0}
+                    onDismiss={() => setSpacedToastDismissed(true)}
+                    onStartReview={handleStartSpacedReview}
+                    onSimulateDays={handleSimulateSpacedDays}
+                    lang={lang}
+                  />
                 </div>
 
                 {/* Sections of the Currently Active Module with Generous Breathing Room */}
                 <div className="space-y-16">
                   {currentCourseSections
-                    .filter((sec) => (sec.moduleId ?? 1) === selectedModuleFilter)
+                    .filter((sec) => (activeCourse === 'sociales' ? (sec.moduleId ?? 1) === selectedModuleFilter : sec.id === selectedModuleFilter))
                     .map((section) => {
                       const sectionNodes = currentCourseNodes.filter(
                         (n) => n.sectionId === section.id
@@ -3390,14 +3624,14 @@ export default function App() {
                         >
                           <div className="space-y-1 min-w-0">
                             <div className="flex items-center gap-2 text-xs font-mono font-bold text-black/80">
-                              <span>Módulo {modId}</span>
+                              <span>{lang === 'es' ? 'Módulo' : 'Module'} {modId}</span>
                               <span aria-hidden="true">·</span>
-                              <span>Sección {displaySecNumber}</span>
+                              <span>{lang === 'es' ? 'Sección' : 'Section'} {displaySecNumber}</span>
                               {canSkipSection && section.previousSectionLabel && (
                                 <>
                                   <span aria-hidden="true">·</span>
                                   <span className="truncate text-black/75">
-                                    Evalúa: {section.previousSectionLabel}
+                                    {lang === 'es' ? 'Evalúa' : 'Tests'}: {section.previousSectionLabel}
                                   </span>
                                 </>
                               )}
@@ -3422,12 +3656,14 @@ export default function App() {
                                 }}
                                 title={
                                   section.previousSectionLabel
-                                    ? `Saltar aprobando evaluación de: ${section.previousSectionLabel}`
-                                    : 'Saltar a esta sección con un examen'
+                                    ? (lang === 'es'
+                                        ? `Saltar aprobando evaluación de: ${section.previousSectionLabel}`
+                                        : `Skip by passing evaluation of: ${section.previousSectionLabel}`)
+                                    : (lang === 'es' ? 'Saltar a esta sección con un examen' : 'Jump to this section with an exam')
                                 }
                               >
                                 <FastForward className="w-4 h-4 stroke-[2.4]" />
-                                <span>Saltar</span>
+                                <span>{lang === 'es' ? 'Saltar' : 'Skip'}</span>
                               </button>
                             )}
 
@@ -3439,13 +3675,21 @@ export default function App() {
                               style={{
                                 borderColor: section.borderHex,
                               }}
-                              title="Abrir guía de fórmulas de la sección"
+                              title={lang === 'es' ? 'Abrir guía de fórmulas de la sección' : 'Open section study guide'}
                             >
                               <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
-                              <span className="text-xs font-extrabold">Guía</span>
+                              <span className="text-xs font-extrabold">{lang === 'es' ? 'Guía' : 'Guide'}</span>
                             </button>
                           </div>
                         </div>
+
+                        {/* Small-Print Multi-Section Reading Block ("más de leer, por eso letra pequeña") */}
+                        <SectionReadingCard
+                          course={activeCourse}
+                          section={section}
+                          sectionNodes={sectionNodes}
+                          lang={lang}
+                        />
 
                         {/* Spacious Winding S-Curve Node Tree */}
                         <div className="relative flex flex-col items-center space-y-11 py-4">
@@ -3455,21 +3699,38 @@ export default function App() {
                             const isLocked = node.index > progress.currentNodeIndex;
                             const isSelected = selectedNode?.id === node.id;
 
+                            const isZoneMascotSpot =
+                              isCurrent ||
+                              localIdx === 1 ||
+                              (sectionNodes.length >= 4 && localIdx === 3);
+                            const placeOnRight =
+                              node.offsetX < 0 ||
+                              (node.offsetX === 0 && (section.id + localIdx) % 2 === 0);
+
                             return (
                               <div
                                 key={node.id}
                                 className="relative w-full flex flex-col items-center"
                               >
-                                {/* Show Mascot beside the path near the active node */}
-                                {isCurrent && (
+                                {/* Show Zone Character Mascot beside the path across different zones */}
+                                {isZoneMascotSpot && (
                                   <div
-                                    className="absolute -top-2 z-10 pointer-events-none"
+                                    className={`absolute -top-3 z-10 pointer-events-none transition-transform duration-300 ${
+                                      isCurrent ? 'scale-105' : 'opacity-95'
+                                    }`}
                                     style={{
-                                      right: node.offsetX <= 0 ? '6%' : 'auto',
-                                      left: node.offsetX > 0 ? '6%' : 'auto',
+                                      right: placeOnRight ? '4%' : 'auto',
+                                      left: !placeOnRight ? '4%' : 'auto',
                                     }}
                                   >
-                                    <MathMascotSvg className="w-24 h-24 sm:w-28 sm:h-28" />
+                                    <ZoneCharacterMascot
+                                      course={activeCourse}
+                                      sectionId={section.id}
+                                      moduleId={modId}
+                                      nodeLocalIndex={localIdx}
+                                      isCurrentNode={isCurrent}
+                                      className="w-24 h-24 sm:w-28 sm:h-28"
+                                    />
                                   </div>
                                 )}
 
@@ -3481,7 +3742,7 @@ export default function App() {
                                   {/* Floating "¡EMPEZAR!" callout above current node */}
                                   {isCurrent && !isSelected && (
                                     <div className="mb-3 px-4 py-1.5 rounded-xl bg-[#131F24] border-2 border-[#2E3E46] text-[#58CC02] font-extrabold text-xs tracking-wider uppercase shadow-lg animate-bounce">
-                                      ¡EMPEZAR! (ENTER)
+                                      {lang === 'es' ? '¡EMPEZAR! (ENTER)' : 'START! (ENTER)'}
                                     </div>
                                   )}
 
@@ -3571,8 +3832,10 @@ export default function App() {
                                       }`}
                                     >
                                       {isCompleted
-                                        ? 'REPASAR +5 XP (ENTER)'
-                                        : `¡EMPEZAR +${node.xpReward} XP! (ENTER)`}
+                                        ? (lang === 'es' ? 'REPASAR +5 XP (ENTER)' : 'REVIEW +5 XP (ENTER)')
+                                        : (lang === 'es'
+                                            ? `¡EMPEZAR +${node.xpReward} XP! (ENTER)`
+                                            : `START +${node.xpReward} XP! (ENTER)`)}
                                     </button>
                                   </div>
                                 )}
@@ -3581,10 +3844,12 @@ export default function App() {
                                 {lockedMessageNodeId === node.id && isLocked && (
                                   <div className="mt-4 w-64 sm:w-72 rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-4 text-center space-y-2.5 z-20">
                                     <p className="text-xs font-extrabold text-neutral-200">
-                                      {node.title} (Bloqueado)
+                                      {node.title} ({lang === 'es' ? 'Bloqueado' : 'Locked'})
                                     </p>
                                     <p className="text-[11px] text-neutral-400">
-                                      Completa los niveles anteriores o salta a esta sección aprobando el tema previo.
+                                      {lang === 'es'
+                                        ? 'Completa los niveles anteriores o salta a esta sección aprobando el tema previo.'
+                                        : 'Complete previous levels or skip to this section by passing the previous exam.'}
                                     </p>
                                     {section.skipExamQuestions &&
                                       section.skipExamQuestions.length > 0 && (
@@ -3593,7 +3858,7 @@ export default function App() {
                                           onClick={() => startSkipExam(section)}
                                           className="w-full py-2.5 rounded-xl bg-[#FFC800] hover:bg-[#FFD324] border-b-4 border-[#D9A300] text-black font-extrabold text-[11px] uppercase tracking-wider cursor-pointer"
                                         >
-                                          Saltar a M{modId} · Sección {displaySecNumber}
+                                          {lang === 'es' ? 'Saltar a M' : 'Skip to M'}{modId} · {lang === 'es' ? 'Sección' : 'Section'} {displaySecNumber}
                                         </button>
                                       )}
                                   </div>
@@ -3621,58 +3886,117 @@ export default function App() {
             {/* TAB 2: PRÁCTICA RÁPIDA DE CÁLCULO MENTAL (CON TECLADO)         */}
             {/* ============================================================== */}
             {activeTab === 'practica' && (
-              <div className="space-y-6">
-                <div className="rounded-2xl bg-[#1CB0F6] border-b-4 border-[#1185BA] p-5 text-white space-y-1">
-                  <h2 className="font-display text-lg sm:text-xl font-extrabold">
-                    Entrenamiento de Cálculo Mental con Teclado
-                  </h2>
-                  <p className="text-xs sm:text-sm font-medium text-white/90">
-                    Escribe el resultado y presiona Enter para ganar +5 XP y recuperar vidas gratis.
-                  </p>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* COLUMNA IZQUIERDA EN PC: TEXTO, INSTRUCCIONES Y GUÍA DE PRÁCTICA */}
+                <div className="lg:col-span-7 space-y-5">
+                  <div className="rounded-2xl bg-[#1CB0F6] border-b-4 border-[#1185BA] p-5 text-white space-y-1.5">
+                    <span className="font-mono text-[10px] font-extrabold uppercase tracking-wider bg-black/20 px-2.5 py-0.5 rounded-md inline-block">
+                      {lang === 'es' ? 'Panel Izquierdo · Instrucciones y Guía' : 'Left Panel · Instructions & Guide'}
+                    </span>
+                    <h2 className="font-display text-lg sm:text-xl font-extrabold">
+                      {lang === 'es' ? 'Entrenamiento de Práctica y Repaso Espaciado' : 'Practice & Spaced Repetition Training'}
+                    </h2>
+                    <p className="text-xs sm:text-sm font-medium text-white/90 leading-relaxed">
+                      {lang === 'es'
+                        ? 'Lee las reglas de agilidad mental y las sugerencias de repetición espaciada a la izquierda, y utiliza el panel derecho para responder con el teclado o seleccionando una opción.'
+                        : 'Read mental agility rules and spaced repetition suggestions on the left, and use the right panel to answer with the keyboard or by selecting an option.'}
+                    </p>
+                  </div>
+
+                  {/* Guía Rápida e Instrucciones de Resolución */}
+                  <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-3">
+                    <h3 className="font-display text-sm font-extrabold text-[#FFC800] flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 shrink-0" />
+                      <span>{lang === 'es' ? 'Instrucciones y Guía de Cálculo Rápido' : 'Instructions & Quick Calculation Guide'}</span>
+                    </h3>
+                    <div className="space-y-2 text-[11px] text-neutral-300 leading-relaxed">
+                      <p>
+                        <strong className="text-white">{lang === 'es' ? '1. Descomposición aditiva y sustractiva:' : '1. Additive & subtractive decomposition:'}</strong>{' '}
+                        {lang === 'es' ? 'Agrupa decenas y unidades antes de sumar o restar para evitar errores de acarreo.' : 'Group tens and units before adding or subtracting to avoid carryover errors.'}
+                      </p>
+                      <p>
+                        <strong className="text-white">{lang === 'es' ? '2. Propiedad distributiva en multiplicación:' : '2. Distributive property in multiplication:'}</strong>{' '}
+                        {lang === 'es' ? 'Para calcular' : 'To calculate'} <span className="font-mono text-[#58CC02]">a × b</span>, {lang === 'es' ? 'descompón uno de los factores (ej.' : 'decompose one factor (e.g.'} <span className="font-mono text-[#58CC02]">14 × 6 = (10 × 6) + (4 × 6) = 84</span>).
+                      </p>
+                      <p>
+                        <strong className="text-white">{lang === 'es' ? '3. Recompensa inmediata:' : '3. Immediate reward:'}</strong>{' '}
+                        {lang === 'es' ? 'Cada respuesta correcta en el panel derecho otorga' : 'Each correct answer on the right panel grants'}{' '}
+                        <span className="font-mono text-[#FFC800]">+5 XP</span> {lang === 'es' ? 'y recupera' : 'and refills'}{' '}
+                        <span className="font-mono text-[#FF4B4B]">+1 {lang === 'es' ? 'vida' : 'heart'}</span> {lang === 'es' ? 'gratis (hasta 5/5).' : 'for free (up to 5/5).'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Spaced Repetition Review Queue on the Left Column */}
+                  <SpacedRepetitionPanelCard
+                    suggestions={spacedSuggestions}
+                    simulatedDaysOffset={spacedStoreSnapshot?.simulatedDaysOffset ?? 0}
+                    isToastDismissed={spacedToastDismissed}
+                    onStartReview={handleStartSpacedReview}
+                    onSimulateDays={handleSimulateSpacedDays}
+                    onResetSimulation={handleResetSpacedSimulation}
+                    onRestoreToast={() => {
+                      setSpacedToastDismissed(false);
+                      setActiveTab('aprender');
+                    }}
+                  />
                 </div>
 
-                {drillFeedback && (
-                  <div className="p-3.5 rounded-2xl bg-[#131F24] border-2 border-[#26353D] text-xs sm:text-sm font-bold text-[#58CC02] text-center">
-                    {drillFeedback}
-                  </div>
-                )}
+                {/* COLUMNA DERECHA EN PC: RESPONDER */}
+                <div className="lg:col-span-5 lg:sticky lg:top-6 space-y-4">
+                  <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-6 sm:p-7 text-center space-y-5 shadow-xl">
+                    <div className="flex items-center justify-between border-b border-[#26353D] pb-3">
+                      <span className="font-display text-xs font-extrabold uppercase tracking-wider text-[#58CC02] flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#58CC02]" />
+                        <span>{lang === 'es' ? 'Responder' : 'Answer'}</span>
+                      </span>
+                      <span className="font-mono text-[11px] text-neutral-400">
+                        {lang === 'es' ? 'Teclado + Enter' : 'Keyboard + Enter'}
+                      </span>
+                    </div>
 
-                <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-8 sm:p-10 text-center space-y-6">
-                  <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-                    Escribe el resultado exacto y presiona Enter
-                  </p>
-                  <div className="font-mono text-3xl sm:text-5xl font-extrabold text-white tracking-wider flex items-center justify-center flex-wrap gap-3">
-                    <span>
-                      {drillA} {drillOp} {drillB} =
-                    </span>
-                    <input
-                      ref={drillInputRef}
-                      type="text"
-                      value={drillTyped}
-                      onChange={(e) => setDrillTyped(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && drillTyped.trim()) {
-                          e.preventDefault();
-                          handleAnswerDrill(drillTyped);
-                        }
-                      }}
-                      placeholder="?"
-                      aria-label="Respuesta de cálculo mental"
-                      className="w-28 sm:w-32 h-14 px-3 rounded-2xl bg-[#0A0E11] border-2 border-[#1CB0F6] text-center font-mono text-3xl sm:text-4xl font-extrabold text-[#1CB0F6] focus:outline-none focus:ring-2 focus:ring-[#58CC02]"
-                    />
-                  </div>
+                    {drillFeedback && (
+                      <div className="p-3 rounded-xl bg-[#0A0E11] border border-[#58CC02]/40 text-xs font-bold text-[#58CC02] text-center">
+                        {drillFeedback}
+                      </div>
+                    )}
 
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4 pt-2">
-                    {drillOptions.map((opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => handleAnswerDrill(opt)}
-                        className="py-4 rounded-2xl bg-[#202F36] hover:bg-[#2A3E47] border-2 border-b-4 border-[#37464F] font-mono text-xl sm:text-2xl font-extrabold text-white active:border-b-2 active:translate-y-0.5 cursor-pointer"
-                      >
-                        {opt}
-                      </button>
-                    ))}
+                    <p className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                      {lang === 'es' ? 'Escribe el resultado exacto y presiona Enter' : 'Type the exact result and press Enter'}
+                    </p>
+                    <div className="font-mono text-2xl sm:text-4xl font-extrabold text-white tracking-wider flex items-center justify-center flex-wrap gap-3">
+                      <span>
+                        {drillA} {drillOp} {drillB} =
+                      </span>
+                      <input
+                        ref={drillInputRef}
+                        type="text"
+                        value={drillTyped}
+                        onChange={(e) => setDrillTyped(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && drillTyped.trim()) {
+                            e.preventDefault();
+                            handleAnswerDrill(drillTyped);
+                          }
+                        }}
+                        placeholder="?"
+                        aria-label={lang === 'es' ? 'Respuesta de cálculo mental' : 'Mental math answer'}
+                        className="w-24 sm:w-28 h-12 sm:h-14 px-3 rounded-2xl bg-[#0A0E11] border-2 border-[#1CB0F6] text-center font-mono text-2xl sm:text-3xl font-extrabold text-[#1CB0F6] focus:outline-none focus:ring-2 focus:ring-[#58CC02]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      {drillOptions.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => handleAnswerDrill(opt)}
+                          className="py-3.5 rounded-2xl bg-[#202F36] hover:bg-[#2A3E47] border-2 border-b-4 border-[#37464F] font-mono text-lg sm:text-xl font-extrabold text-white active:border-b-2 active:translate-y-0.5 cursor-pointer"
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3686,55 +4010,136 @@ export default function App() {
                 <div className="space-y-1">
                   <h2 className="font-display text-xl sm:text-2xl font-extrabold text-white">
                     {activeCourse === 'sociales'
-                      ? 'Cuaderno de Ciencias Sociales (5 Módulos · 20 Secciones)'
+                      ? (lang === 'es' ? 'Cuaderno de Lectura · Ciencias Sociales (5 Módulos · 25 Secciones)' : 'Reading Notebook · Social Sciences (5 Modules · 25 Sections)')
                       : activeCourse === 'quimica'
-                      ? 'Cuaderno de Química (Módulos 1, 2 y 3 · 22 Secciones)'
+                      ? (lang === 'es' ? 'Cuaderno de Lectura · Química (Módulos 1, 2 y 3 · 22 Secciones)' : 'Reading Notebook · Chemistry (Modules 1, 2 & 3 · 22 Sections)')
                       : activeCourse === 'fisica'
-                      ? 'Cuaderno de Física (Módulos 1, 2 y 3 · 20 Secciones)'
-                      : 'Cuaderno de Matemáticas (Módulos 1, 2 y 3 · 20 Secciones)'}
+                      ? (lang === 'es' ? 'Cuaderno de Lectura · Física (Módulos 1, 2 y 3 · 20 Secciones)' : 'Reading Notebook · Physics (Modules 1, 2 & 3 · 20 Sections)')
+                      : (lang === 'es' ? 'Cuaderno de Lectura · Matemáticas (Módulos 1, 2 y 3 · 20 Secciones)' : 'Reading Notebook · Mathematics (Modules 1, 2 & 3 · 20 Sections)')}
                   </h2>
-                  <p className="text-xs sm:text-sm text-neutral-400">
+                  <p className="text-xs text-neutral-400 leading-relaxed">
                     {activeCourse === 'sociales'
-                      ? 'Contexto de los años 50–60, movimientos sociales, surgimiento histórico del ELN, transformaciones territoriales, derechos humanos, memoria histórica y construcción de paz.'
+                      ? (lang === 'es'
+                          ? 'En PC: a la izquierda tienes el texto documental en letra pequeña, las instrucciones y la guía; a la derecha puedes abrir y responder directamente cada lección.'
+                          : 'On PC: on the left you have small-print documentary reading text, instructions, and guide; on the right you can open and answer each lesson directly.')
                       : activeCourse === 'quimica'
-                      ? 'Energía en procesos químicos, reacciones exo/endotérmicas, tabla periódica, partículas fundamentales, quarks, radiación y semidesintegración.'
+                      ? (lang === 'es'
+                          ? 'En PC: a la izquierda tienes las lecturas, instrucciones y guía de Química; a la derecha puedes responder las lecciones de cada sección.'
+                          : 'On PC: on the left you have Chemistry readings, instructions, and guide; on the right you can answer section lessons.')
                       : activeCourse === 'fisica'
-                      ? 'Fórmulas clave de Trabajo, Energía, Cinemática, Leyes de Newton, Fluidos, Termodinámica, Ondas y Electricidad de las 20 secciones.'
-                      : 'Fórmulas clave, propiedades y ejemplos de las 20 secciones del curso.'}
+                      ? (lang === 'es'
+                          ? 'En PC: a la izquierda tienes las lecturas, instrucciones y guía de Física; a la derecha puedes responder las lecciones de cada sección.'
+                          : 'On PC: on the left you have Physics readings, instructions, and guide; on the right you can answer section lessons.')
+                      : (lang === 'es'
+                          ? 'En PC: a la izquierda tienes las lecturas, instrucciones y guía de Matemáticas; a la derecha puedes responder las lecciones de cada sección.'
+                          : 'On PC: on the left you have Mathematics readings, instructions, and guide; on the right you can answer section lessons.')}
                   </p>
                 </div>
 
-                {currentCourseSections.map((sec) => (
-                  <div
-                    key={sec.id}
-                    className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] overflow-hidden"
-                  >
+                {currentCourseSections.map((sec) => {
+                  const secNodes = currentCourseNodes.filter((n) => n.sectionId === sec.id);
+                  return (
                     <div
-                      className="px-5 py-3.5 font-display font-extrabold text-sm sm:text-base text-white flex items-center justify-between"
-                      style={{ backgroundColor: sec.colorHex }}
+                      key={sec.id}
+                      className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] overflow-hidden space-y-0"
                     >
-                      <span>{sec.guideTitle}</span>
-                      <span className="font-mono text-xs bg-black/20 px-2.5 py-0.5 rounded-md">
-                        Módulo {sec.moduleId ?? 1}
-                      </span>
-                    </div>
-                    <div className="p-5 space-y-4 divide-y divide-[#26353D]">
-                      {sec.guideTips.map((tip, i) => (
-                        <div key={i} className={i > 0 ? 'pt-4 space-y-1.5' : 'space-y-1.5'}>
-                          <p className="font-mono text-sm sm:text-base font-extrabold text-[#FFC800]">
-                            {tip.formula}
-                          </p>
-                          <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed">
-                            {tip.rule}
-                          </p>
-                          <p className="text-xs sm:text-sm font-mono text-[#58CC02] bg-[#0A0E11] px-3.5 py-2 rounded-xl">
-                            Ejemplo: {tip.example}
-                          </p>
+                      <div
+                        className="px-5 py-3.5 font-display font-extrabold text-sm sm:text-base text-white flex items-center justify-between"
+                        style={{ backgroundColor: sec.colorHex }}
+                      >
+                        <span>{sec.guideTitle}</span>
+                        <span className="font-mono text-xs bg-black/20 px-2.5 py-0.5 rounded-md">
+                          {lang === 'es' ? 'Módulo' : 'Module'} {sec.moduleId ?? 1} · {lang === 'es' ? 'Sección' : 'Section'} {sec.moduleSectionNumber ?? sec.id}
+                        </span>
+                      </div>
+
+                      <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                        {/* COLUMNA IZQUIERDA EN PC: TEXTO, INSTRUCCIONES Y GUÍA */}
+                        <div className="lg:col-span-8 space-y-4">
+                          <div className="space-y-3 divide-y divide-[#26353D]">
+                            {sec.guideTips.map((tip, i) => (
+                              <div key={i} className={i > 0 ? 'pt-3 space-y-1' : 'space-y-1'}>
+                                <p className="font-mono text-xs sm:text-sm font-extrabold text-[#FFC800]">
+                                  {tip.formula}
+                                </p>
+                                <p className="text-[11px] sm:text-xs text-neutral-300 leading-relaxed">
+                                  {tip.rule}
+                                </p>
+                                <p className="text-[11px] font-mono text-[#58CC02] bg-[#0A0E11] px-3 py-1.5 rounded-xl leading-relaxed">
+                                  {lang === 'es' ? 'Ejemplo:' : 'Example:'} {tip.example}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* 4 Sub-sections of Small-Print Reading inside Guía */}
+                          <SectionReadingCard
+                            course={activeCourse}
+                            section={sec}
+                            sectionNodes={secNodes}
+                            lang={lang}
+                          />
                         </div>
-                      ))}
+
+                        {/* COLUMNA DERECHA EN PC: RESPONDER LECCIONES DE LA SECCIÓN */}
+                        <div className="lg:col-span-4 rounded-xl bg-[#0A1114] border border-[#26353D] p-4 space-y-3">
+                          <div className="flex items-center justify-between border-b border-[#1F2D35] pb-2">
+                            <span className="font-display text-xs font-extrabold uppercase tracking-wider text-[#58CC02]">
+                              {getTranslation(lang, 'answerSectionLessons')}
+                            </span>
+                            <span className="font-mono text-[10px] text-neutral-400">
+                              {secNodes.length} {lang === 'es' ? 'niveles' : 'levels'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-neutral-400 leading-relaxed">
+                            {getTranslation(lang, 'selectLessonToQuiz')}
+                          </p>
+                          <div className="space-y-2">
+                            {secNodes.map((node) => {
+                              const isUnlocked = node.index <= progress.currentNodeIndex;
+                              const isDone = node.index < progress.currentNodeIndex;
+                              return (
+                                <button
+                                  key={node.id}
+                                  type="button"
+                                  disabled={!isUnlocked}
+                                  onClick={() => startLesson(node)}
+                                  className={`w-full p-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-2 ${
+                                    isDone
+                                      ? 'bg-[#131F24] hover:bg-[#1B2B33] border-[#FFC800]/50 text-white cursor-pointer'
+                                      : isUnlocked
+                                      ? 'bg-[#58CC02]/15 hover:bg-[#58CC02]/25 border-[#58CC02] text-white cursor-pointer'
+                                      : 'bg-[#131F24]/50 border-[#1F2D35] text-neutral-500 cursor-not-allowed'
+                                  }`}
+                                >
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-extrabold truncate">
+                                      {node.title}
+                                    </p>
+                                    <p className="text-[10px] text-neutral-400 truncate">
+                                      {node.subtitle}
+                                    </p>
+                                  </div>
+                                  <span
+                                    className={`font-mono text-[10px] font-extrabold px-2 py-1 rounded shrink-0 ${
+                                      isDone
+                                        ? 'bg-[#FFC800] text-black'
+                                        : isUnlocked
+                                        ? 'bg-[#58CC02] text-black'
+                                        : 'bg-[#202F36] text-neutral-500'
+                                    }`}
+                                  >
+                                    {isDone ? (lang === 'es' ? 'Repasar' : 'Review') : isUnlocked ? (lang === 'es' ? 'Responder' : 'Answer') : (lang === 'es' ? 'Bloq.' : 'Lock')}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -3747,16 +4152,16 @@ export default function App() {
                   <div className="space-y-0.5">
                     <h2 className="font-display text-lg sm:text-xl font-extrabold">
                       {activeCourse === 'sociales'
-                        ? 'Dominio de Ciencias Sociales'
+                        ? (lang === 'es' ? 'Dominio de Ciencias Sociales' : 'Mastery of Social Sciences')
                         : activeCourse === 'quimica'
-                        ? 'Dominio de Química'
+                        ? (lang === 'es' ? 'Dominio de Química' : 'Mastery of Chemistry')
                         : activeCourse === 'fisica'
-                        ? 'Dominio de Física'
-                        : 'Dominio de Matemáticas'}
+                        ? (lang === 'es' ? 'Dominio de Física' : 'Mastery of Physics')
+                        : (lang === 'es' ? 'Dominio de Matemáticas' : 'Mastery of Mathematics')}
                     </h2>
                     <p className="text-xs sm:text-sm font-semibold text-black/80">
-                      {progress.currentNodeIndex} de {currentCourseNodes.length} nodos completados en oro (
-                      {activeCourse === 'sociales' ? '5 Módulos · 20 Secciones' : 'Módulos 1, 2 y 3'})
+                      {progress.currentNodeIndex} {lang === 'es' ? 'de' : 'of'} {currentCourseNodes.length} {lang === 'es' ? 'nodos completados en oro (' : 'gold nodes completed ('}
+                      {activeCourse === 'sociales' ? (lang === 'es' ? '5 Módulos · 25 Secciones' : '5 Modules · 25 Sections') : (lang === 'es' ? 'Módulos 1, 2 y 3' : 'Modules 1, 2 and 3')})
                     </p>
                   </div>
                   <Trophy className="w-10 h-10 stroke-[2.2]" />
@@ -3775,6 +4180,7 @@ export default function App() {
                   comboFiveLessonsCount={
                     comboFiveLessonsCount + progress.completedLessonsCount
                   }
+                  lang={lang}
                 />
 
                 {/* Potenciadores: Protector de racha 2/2 EQUIPADOS (image_045d50ab.png) */}
@@ -3784,20 +4190,25 @@ export default function App() {
                   onToggleOrRefill={() =>
                     setStreakFreezesEquipped((prev) => (prev >= 2 ? 1 : 2))
                   }
+                  lang={lang}
                 />
 
                 {/* Daily Goal Ring Chart inside Logros */}
-                <DailyGoalRingChart xp={progress.xp} goal={DAILY_XP_GOAL} />
+                <DailyGoalRingChart xp={progress.xp} goal={DAILY_XP_GOAL} lang={lang} />
 
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-4 sm:p-5 space-y-1">
-                    <span className="text-xs text-neutral-400">Experiencia total</span>
+                    <span className="text-xs text-neutral-400">
+                      {lang === 'es' ? 'Experiencia total' : 'Total XP'}
+                    </span>
                     <p className="font-mono text-2xl sm:text-3xl font-extrabold text-[#FFC800] tabular-nums">
                       {progress.xp} XP
                     </p>
                   </div>
                   <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-4 sm:p-5 space-y-1">
-                    <span className="text-xs text-neutral-400">Lecciones superadas</span>
+                    <span className="text-xs text-neutral-400">
+                      {lang === 'es' ? 'Lecciones superadas' : 'Completed lessons'}
+                    </span>
                     <p className="font-mono text-2xl sm:text-3xl font-extrabold text-[#58CC02] tabular-nums">
                       {progress.completedLessonsCount}
                     </p>
@@ -3806,8 +4217,11 @@ export default function App() {
 
                 <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-3">
                   <h3 className="font-display text-sm sm:text-base font-extrabold text-white">
-                    Estado de los Nodos del Curso (
-                    {activeCourse === 'sociales' ? 'Módulos 1 a 5' : 'Módulos 1, 2 y 3'})
+                    {getTranslation(lang, 'nodesStatusHeader')} (
+                    {activeCourse === 'sociales'
+                      ? (lang === 'es' ? 'Módulos 1 a 5' : 'Modules 1 to 5')
+                      : (lang === 'es' ? `1 Módulo por sección (${currentCourseSections.length} Módulos)` : `1 Module per section (${currentCourseSections.length} Modules)`)}
+                    )
                   </h3>
                   <div className="space-y-2">
                     {currentCourseNodes.map((node) => {
@@ -3860,15 +4274,22 @@ export default function App() {
               <div className="space-y-6">
                 <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-2">
                   <p className="text-xs font-bold uppercase tracking-wider text-[#58CC02]">
-                    Estudiante Verificado
+                    {getTranslation(lang, 'verifiedStudent')}
                   </p>
                   <h2 className="font-display text-xl font-extrabold text-white truncate">
-                    {currentUser.displayName || 'Estudiante'}
+                    {currentUser.displayName || (lang === 'es' ? 'Estudiante' : 'Student')}
                   </h2>
                   <p className="text-xs font-mono text-neutral-400 truncate">
                     {currentUser.email}
                   </p>
                 </div>
+
+                {/* Historial Reciente: Últimas 5 lecciones completadas con fecha y puntaje */}
+                <RecentHistoryCard
+                  items={recentFiveLessons}
+                  onReplayLesson={handleReplayRecentLesson}
+                  lang={lang}
+                />
 
                 {/* Potenciadores: Protector de racha 2 / 2 EQUIPADOS (image_045d50ab.png) */}
                 <PotenciadoresStreakFreezeSection
@@ -3877,6 +4298,7 @@ export default function App() {
                   onToggleOrRefill={() =>
                     setStreakFreezesEquipped((prev) => (prev >= 2 ? 1 : 2))
                   }
+                  lang={lang}
                 />
 
                 {/* Desafíos del día inside Perfil as well */}
@@ -3892,6 +4314,7 @@ export default function App() {
                   comboFiveLessonsCount={
                     comboFiveLessonsCount + progress.completedLessonsCount
                   }
+                  lang={lang}
                 />
 
                 {/* Heart Refill Station */}
@@ -3938,6 +4361,170 @@ export default function App() {
                   </button>
                 </div>
 
+                {/* Idioma de la Aplicación (Español / English) en Perfil */}
+                <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <h3 className="font-display text-sm font-extrabold text-white">
+                        {lang === 'es' ? 'Idioma de la Aplicación' : 'Application Language'}
+                      </h3>
+                      <p className="text-xs text-neutral-400">
+                        {lang === 'es' ? 'Selecciona tu idioma preferido (Español o Inglés)' : 'Select your preferred language (Spanish or English)'}
+                      </p>
+                    </div>
+                    <span className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-lg bg-[#1CB0F6]/15 text-[#1CB0F6] uppercase">
+                      {lang === 'es' ? 'ESPAÑOL' : 'ENGLISH'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setLang('es')}
+                      className={`py-2.5 px-4 rounded-xl border-2 font-display text-xs font-extrabold transition-all cursor-pointer ${
+                        lang === 'es'
+                          ? 'bg-[#58CC02] border-[#46A302] text-black shadow-md'
+                          : 'bg-[#202F36] hover:bg-[#2A3E47] border-[#2E3E46] text-neutral-300'
+                      }`}
+                    >
+                      🇪🇸 Español (ES)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLang('en')}
+                      className={`py-2.5 px-4 rounded-xl border-2 font-display text-xs font-extrabold transition-all cursor-pointer ${
+                        lang === 'en'
+                          ? 'bg-[#1CB0F6] border-[#1185BA] text-black shadow-md'
+                          : 'bg-[#202F36] hover:bg-[#2A3E47] border-[#2E3E46] text-neutral-300'
+                      }`}
+                    >
+                      🇬🇧 English (EN)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Efectos de Sonido y Control de Volumen */}
+                <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
+                          audioMuted || audioVolume === 0
+                            ? 'bg-[#202F36] border-[#26353D] text-neutral-400'
+                            : 'bg-[#1CB0F6]/15 border-[#1CB0F6]/40 text-[#1CB0F6]'
+                        }`}
+                      >
+                        {audioMuted || audioVolume === 0 ? (
+                          <VolumeX className="w-5 h-5" />
+                        ) : (
+                          <Volume2 className="w-5 h-5" />
+                        )}
+                      </div>
+                      <div className="space-y-0.5">
+                        <h3 className="font-display text-sm font-extrabold text-white">
+                          Efectos de Sonido
+                        </h3>
+                        <p className="text-xs text-neutral-400">
+                          {audioMuted || audioVolume === 0
+                            ? 'Silenciado · Sin sonidos en lecciones'
+                            : `Activo · Volumen al ${Math.round(audioVolume * 100)}%`}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleToggleAudioMute}
+                      className={`px-3.5 py-2 rounded-xl font-extrabold text-xs uppercase tracking-wider border-b-4 transition-all cursor-pointer flex items-center gap-1.5 ${
+                        audioMuted || audioVolume === 0
+                          ? 'bg-[#202F36] hover:bg-[#2A3E47] border-[#0E171B] text-neutral-300'
+                          : 'bg-[#58CC02] hover:bg-[#61E002] border-[#46A302] text-black'
+                      }`}
+                    >
+                      {audioMuted || audioVolume === 0 ? (
+                        <>
+                          <VolumeX className="w-4 h-4" />
+                          <span>Silenciado</span>
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 className="w-4 h-4" />
+                          <span>Sonido ON</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Control deslizante de volumen */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between text-xs font-bold text-neutral-400">
+                      <span>Volumen de efectos</span>
+                      <span className="font-mono text-white">
+                        {audioMuted ? '0%' : `${Math.round(audioVolume * 100)}%`}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={5}
+                      value={audioMuted ? 0 : Math.round(audioVolume * 100)}
+                      onChange={(e) =>
+                        handleChangeAudioVolume(Number(e.target.value) / 100)
+                      }
+                      aria-label="Volumen de efectos de sonido"
+                      className="w-full h-2 rounded-lg appearance-none bg-[#202F36] accent-[#1CB0F6] cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Botones de prueba rápida de sonidos sutiles */}
+                  <div className="pt-1">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2">
+                      Probar efectos sutiles
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        disabled={audioMuted || audioVolume === 0}
+                        onClick={() => playCorrectSound()}
+                        className="py-2 px-2.5 rounded-xl bg-[#202F36] hover:bg-[#2A3E47] disabled:opacity-40 disabled:cursor-not-allowed border border-[#26353D] text-[11px] font-extrabold text-[#58CC02] transition-colors cursor-pointer"
+                      >
+                        ✓ Respuesta
+                      </button>
+                      <button
+                        type="button"
+                        disabled={audioMuted || audioVolume === 0}
+                        onClick={() => playLevelUpSound()}
+                        className="py-2 px-2.5 rounded-xl bg-[#202F36] hover:bg-[#2A3E47] disabled:opacity-40 disabled:cursor-not-allowed border border-[#26353D] text-[11px] font-extrabold text-[#FFC800] transition-colors cursor-pointer"
+                      >
+                        ★ Nuevo nivel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={audioMuted || audioVolume === 0}
+                        onClick={() => playLessonCompleteSound()}
+                        className="py-2 px-2.5 rounded-xl bg-[#202F36] hover:bg-[#2A3E47] disabled:opacity-40 disabled:cursor-not-allowed border border-[#26353D] text-[11px] font-extrabold text-[#1CB0F6] transition-colors cursor-pointer"
+                      >
+                        🏆 Lección
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Spaced Repetition Memory & Multi-Day Login Simulator in Perfil */}
+                <SpacedRepetitionPanelCard
+                  suggestions={spacedSuggestions}
+                  simulatedDaysOffset={spacedStoreSnapshot?.simulatedDaysOffset ?? 0}
+                  isToastDismissed={spacedToastDismissed}
+                  onStartReview={handleStartSpacedReview}
+                  onSimulateDays={handleSimulateSpacedDays}
+                  onResetSimulation={handleResetSpacedSimulation}
+                  onRestoreToast={() => {
+                    setSpacedToastDismissed(false);
+                    setActiveTab('aprender');
+                  }}
+                />
+
                 {/* Reiniciar progreso & Cerrar sesión */}
                 <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-3">
                   <button
@@ -3977,7 +4564,7 @@ export default function App() {
           {/* Top Status Strip matches image_f7da1fd4.png & image_4899740f.png */}
           {/* Includes Desafíos del día (image_628b9824.png) & Potenciadores   */}
           {/* ================================================================ */}
-          <aside className="hidden xl:flex xl:w-[440px] shrink-0 flex-col gap-5 sticky top-8 h-fit select-none">
+          <aside className="hidden 2xl:flex 2xl:w-[340px] shrink-0 flex-col gap-5 sticky top-8 h-fit select-none">
             {/* Top Stats Strip on PC: [Course Icon + Count] [Flame] [Gems] [Hearts] */}
             <div className="flex items-center justify-between px-2 py-1">
               <CourseSelectorDropdown
@@ -4026,6 +4613,7 @@ export default function App() {
               comboFiveLessonsCount={
                 comboFiveLessonsCount + progress.completedLessonsCount
               }
+              lang={lang}
             />
 
             {/* Potenciadores: Protector de racha 2 / 2 EQUIPADOS (image_045d50ab.png) */}
@@ -4035,10 +4623,11 @@ export default function App() {
               onToggleOrRefill={() =>
                 setStreakFreezesEquipped((prev) => (prev >= 2 ? 1 : 2))
               }
+              lang={lang}
             />
 
             {/* Daily XP Goal Card with Animated Custom SVG Ring Chart */}
-            <DailyGoalRingChart xp={progress.xp} goal={DAILY_XP_GOAL} />
+            <DailyGoalRingChart xp={progress.xp} goal={DAILY_XP_GOAL} lang={lang} />
 
             {/* Tarjeta 'Resumen de Módulos' (Recharts) en el panel derecho */}
             <ModuleSummaryCard
@@ -4052,6 +4641,7 @@ export default function App() {
                 setSelectedModuleFilter(mod);
                 setActiveTab('aprender');
               }}
+              lang={lang}
             />
 
             {/* Active Next Lesson Card */}

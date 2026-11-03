@@ -9,9 +9,9 @@ import { ArithmeticNode, ArithmeticSection } from './mathCurriculum';
  * Enfoque pedagógico: Histórico, crítico, educativo y respetuoso de los Derechos Humanos,
  * centrado en el análisis de fuentes, la comprensión histórica y la convivencia pacífica.
  */
-export const SOCIALES_SECTIONS: ArithmeticSection[] = [
+const RAW_SOCIALES_SECTIONS: ArithmeticSection[] = [
   // ============================================================================
-  // MÓDULO 1: CONTEXTO POLÍTICO Y SOCIAL EN LAS DÉCADAS DE 1950 Y 1960 (Secciones 1 a 4)
+  // MÓDULO 1: CONTEXTO POLÍTICO Y SOCIAL EN LAS DÉCADAS DE 1950 Y 1960 (Secciones 1 a 5)
   // ============================================================================
   {
     id: 1,
@@ -904,9 +904,236 @@ export const SOCIALES_SECTIONS: ArithmeticSection[] = [
       },
     ],
   },
+  // ============================================================================
+  // SECCIONES ADICIONALES DE LECTURA PROFUNDA Y ANÁLISIS DOCUMENTAL (Secciones 21 a 25)
+  // ============================================================================
+  {
+    id: 21,
+    moduleId: 1,
+    moduleSectionNumber: 5,
+    previousSectionLabel: 'Módulo 1 · Sección 4 (Guerra Fría y América Latina)',
+    title: 'Sección 5 · Lectura Crítica: Prensa, Radio y Vida Cotidiana (1948–1965)',
+    subtitle: 'Análisis de fuentes hemerográficas, Radio Sutatenza (ACPO), educación rural y testimonios de época',
+    colorHex: '#CE82FF',
+    borderHex: '#A55EEA',
+    guideTitle: 'Módulo 1 · Sección 5: Lectura Documental de los Años 50 y 60',
+    guideTips: [
+      {
+        formula: 'Escuelas Radiofónicas de Sutatenza (ACPO, 1947–1970)',
+        rule: 'Fundadas en el Valle de Tenza (Boyacá) por Acción Cultural Popular, utilizaron la radio, el periódico "El Campesino" y cartillas de lectura para alfabetizar a cientos de miles de familias rurales en medio de las dificultades de comunicación del campo colombiano.',
+        example: 'La alfabetización integral promovía lectura, cálculo, salud, economía agrícola y convivencia comunitaria en las veredas.',
+      },
+      {
+        formula: 'Crítica de fuentes hemerográficas y censura de prensa',
+        rule: 'Durante el Estado de Sitio en los años 50, varios periódicos nacionales y regionales sufrieron restricciones o cierres, por lo que el historiador debe contrastar los diarios oficiales con archivos judiciales, cartas y memoria oral campesina.',
+        example: 'La lectura comparada de editoriales liberales y conservadores revela cómo el lenguaje polarizado influyó en el clima político local.',
+      },
+    ],
+    skipExamQuestions: [
+      {
+        id: 'soc_skip_s21_q1',
+        type: 'visual_choice',
+        prompt: 'Examen de Salto (M1 · S4): Según la lectura histórica de los años 50 y 60, ¿qué iniciativa pionera de educación campesina por radio surgió en Boyacá para alfabetizar al mundo rural?',
+        equationPrefix: 'Iniciativa =',
+        options: ['Radio Sutatenza (Acción Cultural Popular - ACPO)', 'Telégrafo Real de Indias', 'Red de Televisión Satelital Andina', 'Imprenta Patriótica de Nariño'],
+        correctAnswer: 'Radio Sutatenza (Acción Cultural Popular - ACPO)',
+        explanation: 'Radio Sutatenza y Acción Cultural Popular (ACPO) transformaron la alfabetización y lectura rural en Colombia desde finales de los años 40 y durante los 50 y 60.',
+      },
+      {
+        id: 'soc_skip_s21_q2',
+        type: 'visual_choice',
+        prompt: 'Examen de Salto (M1 · S4): ¿Por qué el método histórico exige contrastar varias fuentes escritas y orales al estudiar la década de 1950 en Colombia?',
+        equationPrefix: 'Criterio metodológico =',
+        options: ['Porque la polarización partidista y la censura bajo el Estado de Sitio sesgaban las versiones únicas de los hechos', 'Porque no existía ningún periódico impreso en el siglo XX', 'Porque los documentos escritos carecen de valor histórico', 'Porque solo se permiten fuentes extranjeras'],
+        correctAnswer: 'Porque la polarización partidista y la censura bajo el Estado de Sitio sesgaban las versiones únicas de los hechos',
+        explanation: 'El contraste de fuentes permite superar los sesgos partidistas y reconstruir con rigor los procesos históricos.',
+      },
+    ],
+  },
+  {
+    id: 22,
+    moduleId: 2,
+    moduleSectionNumber: 5,
+    previousSectionLabel: 'Módulo 2 · Sección 4 (Movimientos Estudiantiles y Sindicales)',
+    title: 'Sección 5 · Lectura Sociológica: La Violencia en Colombia (1962) y Estudios Agrarios',
+    subtitle: 'Análisis de la obra de Guzmán, Fals Borda y Umaña Luna, colonización campesina y juntas comunales',
+    colorHex: '#FF9600',
+    borderHex: '#CC7800',
+    guideTitle: 'Módulo 2 · Sección 5: Lectura de "La Violencia en Colombia" (1962)',
+    guideTips: [
+      {
+        formula: 'Obra fundacional: "La Violencia en Colombia" (1962) — Germán Guzmán Campos, Orlando Fals Borda y Eduardo Umaña Luna',
+        rule: 'Este estudio interdisciplinario (sociológico, jurídico y testimonial) fue el primer gran esfuerzo académico por documentar sobre el terreno las causas, geografías y secuelas humanas de la violencia de los años 40 y 50.',
+        example: 'Su publicación en 1962 abrió el debate público nacional sobre la responsabilidad de las élites partidistas, la fractura institucional y el dolor campesino.',
+      },
+      {
+        formula: 'Acción Comunal (Ley 19 de 1958) y autogestión veredal',
+        rule: 'Las Juntas de Acción Comunal (JAC) se convirtieron en espacios esenciales de organización vecinal para construir escuelas, caminos veredales, acueductos comunitarios y reconstruir la confianza social.',
+        example: 'Miles de veredas colombianas levantaron su infraestructura básica mediante convites y trabajo solidario organizado en Juntas de Acción Comunal.',
+      },
+    ],
+    skipExamQuestions: [
+      {
+        id: 'soc_skip_s22_q1',
+        type: 'visual_choice',
+        prompt: 'Examen de Salto (M2 · S4): ¿Quiénes fueron los tres autores del libro sociológico e histórico "La Violencia en Colombia" publicado en 1962?',
+        equationPrefix: 'Autores =',
+        options: ['Germán Guzmán Campos, Orlando Fals Borda y Eduardo Umaña Luna', 'Gabriel García Márquez, Álvaro Mutis y León de Greiff', 'Alberto Lleras, Guillermo León Valencia y Carlos Lleras', 'Jorge Isaacs, José Eustasio Rivera y Tomás Carrasquilla'],
+        correctAnswer: 'Germán Guzmán Campos, Orlando Fals Borda y Eduardo Umaña Luna',
+        explanation: 'Monseñor Germán Guzmán Campos, el sociólogo Orlando Fals Borda y el jurista Eduardo Umaña Luna publicaron en 1962 "La Violencia en Colombia".',
+      },
+      {
+        id: 'soc_skip_s22_q2',
+        type: 'visual_choice',
+        prompt: 'Examen de Salto (M2 · S4): ¿Qué figura organizativa comunitaria, institucionalizada desde 1958, permitió a campesinos y barrios construir escuelas, caminos y acueductos mediante trabajo solidario?',
+        equationPrefix: 'Organización =',
+        options: ['Las Juntas de Acción Comunal (JAC)', 'Los Consulados Marítimos', 'Las Bolsas de Valores', 'Las Cámaras de Comercio Exterior'],
+        correctAnswer: 'Las Juntas de Acción Comunal (JAC)',
+        explanation: 'Las Juntas de Acción Comunal (JAC) han sido pilares de la participación ciudadana y el desarrollo comunitario en veredas y barrios de Colombia.',
+      },
+    ],
+  },
+  {
+    id: 23,
+    moduleId: 3,
+    moduleSectionNumber: 5,
+    previousSectionLabel: 'Módulo 3 · Sección 4 (Actores Insurgentes del Siglo XX)',
+    title: 'Sección 5 · Lectura Historiográfica: Enfoques sobre el Origen del Conflicto Armado',
+    subtitle: 'Comisión Histórica del Conflicto y sus Víctimas (2015), factores objetivos y subjetivos y debate académico',
+    colorHex: '#1CB0F6',
+    borderHex: '#1185BA',
+    guideTitle: 'Módulo 3 · Sección 5: Lectura Historiográfica sobre los Años 60 y 70',
+    guideTips: [
+      {
+        formula: 'Comisión Histórica del Conflicto y sus Víctimas (CHCV, 2015)',
+        rule: 'Reunió a doce expertos y dos relatores (Eduardo Pizarro Leongómez y Víctor Manuel Moncayo) para elaborar ensayos plurales sobre los orígenes, factores de persistencia e impactos del conflicto armado colombiano.',
+        example: 'Los informes coincidieron en la multicausalidad del conflicto: cuestión agraria irresuelta, debilidad institucional regional, cierre político y proliferación de economías ilegales.',
+      },
+      {
+        formula: 'Diferencia entre protesta social democrática y lucha armada',
+        rule: 'La historiografía contemporánea subraya que mientras el movimiento sindical, estudiantil y cívico buscó ampliar derechos por vías civiles y constitucionales, la opción armada de los años 60 condujo a una prolongada confrontación con graves costos humanitarios.',
+        example: 'Analizar críticamente los manifiestos y programas de los años 60 permite entender su contexto de Guerra Fría sin justificar el uso de la violencia.',
+      },
+    ],
+    skipExamQuestions: [
+      {
+        id: 'soc_skip_s23_q1',
+        type: 'visual_choice',
+        prompt: 'Examen de Salto (M3 · S4): ¿Qué significa en las ciencias sociales que el conflicto armado colombiano sea un fenómeno "multicausal"?',
+        equationPrefix: 'Significado =',
+        options: ['Que no obedece a una única causa aislada, sino a la confluencia de factores agrarios, políticos, institucionales, regionales e internacionales a lo largo del tiempo', 'Que tuvo una sola causa ocurrida en un único día', 'Que solo dependió del clima geográfico', 'Que no tuvo relación alguna con la historia política ni agraria'],
+        correctAnswer: 'Que no obedece a una única causa aislada, sino a la confluencia de factores agrarios, políticos, institucionales, regionales e internacionales a lo largo del tiempo',
+        explanation: 'La multicausalidad explica cómo interactuaron factores estructurales (tierra, institucionalidad) y coyunturales (Guerra Fría, exclusión política).',
+      },
+      {
+        id: 'soc_skip_s23_q2',
+        type: 'visual_choice',
+        prompt: 'Examen de Salto (M3 · S4): ¿Cuál es la distinción constitucional e histórica fundamental entre los movimientos sociales cívicos y los grupos armados?',
+        equationPrefix: 'Distinción =',
+        options: ['Los movimientos sociales ejercen derechos democráticos y pacíficos de reunión, expresión y petición; los grupos armados recurrieron a las armas fuera de la vía institucional', 'No existe ninguna diferencia entre un sindicato legal y un grupo armado', 'La Constitución prohíbe toda asociación ciudadana', 'Los movimientos cívicos rechazan el diálogo público'],
+        correctAnswer: 'Los movimientos sociales ejercen derechos democráticos y pacíficos de reunión, expresión y petición; los grupos armados recurrieron a las armas fuera de la vía institucional',
+        explanation: 'Distinguir la movilización social pacífica de la violencia armada es una garantía democrática esencial en el Estado Social de Derecho.',
+      },
+    ],
+  },
+  {
+    id: 24,
+    moduleId: 4,
+    moduleSectionNumber: 5,
+    previousSectionLabel: 'Módulo 4 · Sección 4 (Resistencia Civil Pacífica)',
+    title: 'Sección 5 · Lectura Territorial: Crónicas de Regiones, Ríos y Biodiversidad',
+    subtitle: 'El río Magdalena, el Catatumbo, el Pacífico y el piedemonte llanero en la historia regional de Colombia',
+    colorHex: '#58CC02',
+    borderHex: '#46A302',
+    guideTitle: 'Módulo 4 · Sección 5: Lectura sobre Regiones, Ríos y Paz Territorial',
+    guideTips: [
+      {
+        formula: 'Los ríos como arterias históricas, culturales y de memoria',
+        rule: 'Cuencas como las de los ríos Magdalena, Cauca, Atrato, Catatumbo, Arauca y Putumayo han sido ejes de poblamiento campesino, pesca artesanal, intercambio cultural ribereño y también escenarios que requieren protección ambiental y humanitaria.',
+        example: 'La Sentencia T-622 de 2016 de la Corte Constitucional reconoció al río Atrato como sujeto de derechos bioculturales para proteger a las comunidades ribereñas y su ecosistema.',
+      },
+      {
+        formula: 'Desarrollo rural integral y cierre de brechas campo-ciudad',
+        rule: 'Las lecturas sobre geografía humana demuestran que llevar vías terciarias, escuelas rurales, conectividad, salud, titulación de tierras y asistencia técnica al campo es la base material para transformar las regiones afectadas.',
+        example: 'Los Programas de Desarrollo con Enfoque Territorial (PDET) fueron diseñados con participación comunitaria en los municipios más golpeados por la violencia y la pobreza.',
+      },
+    ],
+    skipExamQuestions: [
+      {
+        id: 'soc_skip_s24_q1',
+        type: 'visual_choice',
+        prompt: 'Examen de Salto (M4 · S4): ¿Qué hito jurisprudencial estableció la Sentencia T-622 de 2016 de la Corte Constitucional respecto al río Atrato en el Chocó?',
+        equationPrefix: 'Hito constitucional =',
+        options: ['Reconoció al río Atrato, su cuenca y afluentes como una entidad sujeta de derechos a la protección, conservación y restauración junto con los derechos bioculturales de sus comunidades', 'Autorizó la minería con mercurio sin restricciones', 'Eliminó los consejos comunitarios del Pacífico', 'Prohibió la pesca artesanal de subsistencia'],
+        correctAnswer: 'Reconoció al río Atrato, su cuenca y afluentes como una entidad sujeta de derechos a la protección, conservación y restauración junto con los derechos bioculturales de sus comunidades',
+        explanation: 'La Sentencia T-622 de 2016 marcó un precedente mundial en derechos bioculturales y protección ambiental de las comunidades ribereñas.',
+      },
+      {
+        id: 'soc_skip_s24_q2',
+        type: 'visual_choice',
+        prompt: 'Examen de Salto (M4 · S4): ¿Por qué la inversión en educación rural, salud, agua potable y vías campesinas se considera un pilar de la paz territorial?',
+        equationPrefix: 'Razón estructural =',
+        options: ['Porque garantiza condiciones de vida digna, reduce las brechas históricas entre el campo y la ciudad y fortalece la presencia integral del Estado Social de Derecho', 'Porque disminuye la producción de alimentos', 'Porque aísla a las veredas de las ciudades', 'Porque sustituye los derechos constitucionales'],
+        correctAnswer: 'Porque garantiza condiciones de vida digna, reduce las brechas históricas entre el campo y la ciudad y fortalece la presencia integral del Estado Social de Derecho',
+        explanation: 'El bienestar rural y la presencia integral del Estado con bienes públicos fortalecen la democracia y la convivencia en las regiones.',
+      },
+    ],
+  },
+  {
+    id: 25,
+    moduleId: 5,
+    moduleSectionNumber: 5,
+    previousSectionLabel: 'Módulo 5 · Sección 4 (Diálogos de Paz y Convivencia)',
+    title: 'Sección 5 · Lectura Documental: Archivo de Derechos Humanos y Pedagogía de Paz',
+    subtitle: 'Lectura del Informe Final (2022), Cátedra de la Paz (Ley 1732 de 2014) y resolución ciudadana de conflictos',
+    colorHex: '#00CD9C',
+    borderHex: '#00A37C',
+    guideTitle: 'Módulo 5 · Sección 5: Lectura Integral de DD. HH. y Pedagogía de Paz',
+    guideTips: [
+      {
+        formula: 'Ley 1732 de 2014 y Decreto 1038 de 2015: Cátedra de la Paz',
+        rule: 'Estableció la Cátedra de la Paz en todas las instituciones educativas del país con tres objetivos centrales: cultura de la paz (derechos humanos y convivencia), educación para la paz (resolución pacífica de conflictos) y desarrollo sostenible.',
+        example: 'El estudio riguroso de la memoria histórica, la Constitución de 1991 y la participación democrática hace parte esencial de la formación ciudadana.',
+      },
+      {
+        formula: 'Ética de la escucha, pluralismo y verificación de información',
+        rule: 'Una sociedad democrática supera la polarización cuando reemplaza la estigmatización por el debate argumentado, verifica las fuentes antes de compartir información y reconoce la igual dignidad de todas las personas.',
+        example: 'Los archivos de derechos humanos y centros de memoria preservan documentos primarios para que las nuevas generaciones comprendan el pasado con rigor y empatía.',
+      },
+    ],
+    skipExamQuestions: [
+      {
+        id: 'soc_skip_s25_q1',
+        type: 'visual_choice',
+        prompt: 'Examen de Salto (M5 · S4): ¿Qué ley colombiana creó la "Cátedra de la Paz" en las instituciones educativas para fomentar la cultura de paz, los derechos humanos y la convivencia?',
+        equationPrefix: 'Ley educativa =',
+        options: ['Ley 1732 de 2014', 'Ley 80 de 1993', 'Ley 50 de 1990', 'Ley 4 de 1913'],
+        correctAnswer: 'Ley 1732 de 2014',
+        explanation: 'La Ley 1732 de 2014 (reglamentada por el Decreto 1038 de 2015) instituyó la Cátedra de la Paz en los establecimientos educativos de Colombia.',
+      },
+      {
+        id: 'soc_skip_s25_q2',
+        type: 'visual_choice',
+        prompt: 'Examen de Salto (M5 · S4): Al leer fuentes históricas o noticias sobre conflictos sociales, ¿cuál es la actitud propia del pensamiento crítico y la cultura de paz?',
+        equationPrefix: 'Actitud crítica =',
+        options: ['Contrastar fuentes primarias y secundarias, identificar el contexto, rechazar todo discurso de odio o violencia y argumentar con respeto por la dignidad humana', 'Aceptar rumores sin verificar las fuentes', 'Promover la polarización y la intolerancia', 'Ignorar los derechos fundamentales de las comunidades'],
+        correctAnswer: 'Contrastar fuentes primarias y secundarias, identificar el contexto, rechazar todo discurso de odio o violencia y argumentar con respeto por la dignidad humana',
+        explanation: 'La lectura crítica y el respeto por los derechos humanos son la base de la ciudadanía democrática.',
+      },
+    ],
+  },
 ];
 
-export const SOCIALES_NODES: ArithmeticNode[] = [
+export const SOCIALES_SECTIONS: ArithmeticSection[] = RAW_SOCIALES_SECTIONS.slice().sort(
+  (a, b) => {
+    const modA = a.moduleId ?? 1;
+    const modB = b.moduleId ?? 1;
+    if (modA !== modB) return modA - modB;
+    return (a.moduleSectionNumber ?? a.id) - (b.moduleSectionNumber ?? b.id);
+  }
+);
+
+const RAW_SOCIALES_NODES: ArithmeticNode[] = [
   // ============================================================================
   // MÓDULO 1 · SECCIÓN 1: Bipartidismo y La Violencia (Años 50) (Nodos 0, 1, 2)
   // ============================================================================
@@ -2897,8 +3124,483 @@ export const SOCIALES_NODES: ArithmeticNode[] = [
         equationPrefix: 'Práctica ciudadana =',
         options: ['Resolviendo los conflictos mediante el diálogo, respetando la diversidad, verificando las fuentes con rigor y defendiendo siempre la vida y la dignidad humana', 'Descalificando a quien piensa distinto', 'Difundiendo desinformación sin contrastar fuentes', 'Siendo indiferentes ante los derechos de los demás'],
         correctAnswer: 'Resolviendo los conflictos mediante el diálogo, respetando la diversidad, verificando las fuentes con rigor y defendiendo siempre la vida y la dignidad humana',
-        explanation: '¡Felicitaciones! Has completado los 5 módulos y las 20 secciones del curso de Ciencias Sociales con pensamiento crítico y compromiso con la paz.',
+        explanation: 'El diálogo, la verificación de fuentes y el respeto a la dignidad humana son la base de la paz cotidiana.',
+      },
+    ],
+  },
+
+  // ============================================================================
+  // MÓDULO 1 · SECCIÓN 5 (ID 21): Lectura Crítica: Prensa, Radio y Vida Cotidiana
+  // ============================================================================
+  {
+    index: 60,
+    id: 'soc_s21_n1',
+    sectionId: 21,
+    title: 'Lectura: Radio Sutatenza y Educación Rural',
+    subtitle: 'Escuelas radiofónicas, periódico El Campesino y alfabetización en el campo',
+    xpReward: 20,
+    gemsReward: 5,
+    offsetX: -18,
+    questions: [
+      {
+        id: 'soc_s21_n1_q1',
+        type: 'visual_choice',
+        prompt: 'Lectura documental: A finales de los años 40 y durante las décadas de 1950 y 1960, Acción Cultural Popular (ACPO) creó las Escuelas Radiofónicas de Sutatenza en Boyacá. ¿Cuál fue su aporte histórico principal a las comunidades campesinas?',
+        equationPrefix: 'Aporte histórico =',
+        options: [
+          'Llevó alfabetización en lectura, escritura, cálculo, salud y técnicas agrícolas a cientos de miles de campesinos mediante la radio y cartillas impresas',
+          'Sustituyó todas las escuelas urbanas de las capitales por cuarteles',
+          'Prohibió la circulación de libros y cartillas en las zonas rurales',
+          'Transmitió únicamente boletines bursátiles en idioma extranjero',
+        ],
+        correctAnswer: 'Llevó alfabetización en lectura, escritura, cálculo, salud y técnicas agrícolas a cientos de miles de campesinos mediante la radio y cartillas impresas',
+        explanation: 'Las Escuelas Radiofónicas de Sutatenza (ACPO) combinaron radio, cartillas, bibliotecas campesinas y el semanario El Campesino para democratizar la lectura en el campo.',
+      },
+      {
+        id: 'soc_s21_n1_q2',
+        type: 'visual_choice',
+        prompt: 'Según la historia cultural de los años 50 y 60 en Colombia, ¿por qué la radio y las cartillas de lectura tuvieron un impacto tan profundo en las veredas?',
+        equationPrefix: 'Análisis cultural =',
+        options: [
+          'Porque superaron el aislamiento geográfico de las cordilleras y permitieron que familias enteras aprendieran a leer y escribir en su propio hogar',
+          'Porque en el campo ya existían autopistas y fibra óptica en 1950',
+          'Porque obligaban a abandonar el cultivo de alimentos',
+          'Porque impedían el trabajo comunitario entre vecinos',
+        ],
+        correctAnswer: 'Porque superaron el aislamiento geográfico de las cordilleras y permitieron que familias enteras aprendieran a leer y escribir en su propio hogar',
+        explanation: 'Ante la dispersión rural y la falta de vías, el receptor de radio y el auxiliar inmediato veredal permitieron el aprendizaje colectivo familiar.',
+      },
+    ],
+  },
+  {
+    index: 61,
+    id: 'soc_s21_n2',
+    sectionId: 21,
+    title: 'Lectura: Archivos de Prensa y Censura',
+    subtitle: 'Cómo leer críticamente periódicos y documentos bajo el Estado de Sitio',
+    xpReward: 20,
+    gemsReward: 5,
+    offsetX: 18,
+    questions: [
+      {
+        id: 'soc_s21_n2_q1',
+        type: 'visual_choice',
+        prompt: 'Lectura metodológica: Cuando un estudiante o historiador examina periódicos colombianos de la década de 1950, ¿qué precaución de lectura crítica debe aplicar?',
+        equationPrefix: 'Regla de lectura =',
+        options: [
+          'Identificar la filiación partidista del diario, verificar si existía censura oficial bajo el Estado de Sitio y contrastar la noticia con otras fuentes y testimonios regionales',
+          'Asumir que todo titular partidista de la época era neutral y completo',
+          'Descartar por completo el estudio de las fechas y los lugares',
+          'Ignorar las voces de las comunidades rurales afectadas',
+        ],
+        correctAnswer: 'Identificar la filiación partidista del diario, verificar si existía censura oficial bajo el Estado de Sitio y contrastar la noticia con otras fuentes y testimonios regionales',
+        explanation: 'La crítica de fuentes exige contextualizar quién escribió el texto, bajo qué condiciones de libertad de prensa y qué silencios u omisiones presenta.',
+      },
+      {
+        id: 'soc_s21_n2_q2',
+        type: 'visual_choice',
+        prompt: '¿Qué tipo de fuentes complementarias permiten enriquecer la historia social de las regiones donde la prensa escrita nacional casi no llegaba en los años 50?',
+        equationPrefix: 'Fuentes complementarias =',
+        options: [
+          'Archivos municipales y parroquiales, expedientes agrarios, correspondencia, fotografías de época y testimonios de memoria oral comunitaria',
+          'Únicamente rumores anónimos sin fecha ni lugar',
+          'Textos de ficción escritos en otros continentes',
+          'Ninguna, porque el pasado regional no puede investigarse',
+        ],
+        correctAnswer: 'Archivos municipales y parroquiales, expedientes agrarios, correspondencia, fotografías de época y testimonios de memoria oral comunitaria',
+        explanation: 'La historia regional y social combina archivos locales escritos con el rigor de la historia oral para reconstruir la vida cotidiana de las comunidades.',
+      },
+    ],
+  },
+  {
+    index: 62,
+    id: 'soc_s21_n3',
+    sectionId: 21,
+    title: 'Síntesis Lectora del Módulo 1',
+    subtitle: 'Comprensión integral de la transición entre los años 50 y los años 60',
+    xpReward: 30,
+    gemsReward: 10,
+    offsetX: 0,
+    isCheckpoint: true,
+    questions: [
+      {
+        id: 'soc_s21_n3_q1',
+        type: 'visual_choice',
+        prompt: 'Síntesis de lectura (Módulo 1): Al integrar las 5 secciones del Módulo 1, ¿qué paradoja caracterizó a Colombia al iniciar la década de 1960?',
+        equationPrefix: 'Paradoja histórica =',
+        options: [
+          'El Frente Nacional logró apaciguar el enfrentamiento entre las cúpulas liberal y conservadora, pero mantuvo restricciones políticas mientras el país vivía una acelerada urbanización y demandas agrarias',
+          'El país detuvo por completo su crecimiento demográfico y regresó al régimen colonial',
+          'Desaparecieron las universidades públicas y las ciudades quedaron deshabitadas',
+          'Se resolvieron en 1958 todas las desigualdades del campo colombiano',
+        ],
+        correctAnswer: 'El Frente Nacional logró apaciguar el enfrentamiento entre las cúpulas liberal y conservadora, pero mantuvo restricciones políticas mientras el país vivía una acelerada urbanización y demandas agrarias',
+        explanation: 'Esta tensión entre pacificación bipartidista, exclusión de terceras fuerzas y demandas sociales pendientes marcó el inicio de los años 60.',
+      },
+    ],
+  },
+
+  // ============================================================================
+  // MÓDULO 2 · SECCIÓN 5 (ID 22): Lectura Sociológica: La Violencia en Colombia (1962)
+  // ============================================================================
+  {
+    index: 63,
+    id: 'soc_s22_n1',
+    sectionId: 22,
+    title: 'Lectura: "La Violencia en Colombia" (1962)',
+    subtitle: 'El aporte pionero de Guzmán Campos, Fals Borda y Umaña Luna',
+    xpReward: 20,
+    gemsReward: 5,
+    offsetX: -18,
+    questions: [
+      {
+        id: 'soc_s22_n1_q1',
+        type: 'visual_choice',
+        prompt: 'Lectura sociológica: En 1962 se publicó el libro "La Violencia en Colombia", escrito por Germán Guzmán Campos, Orlando Fals Borda y Eduardo Umaña Luna. ¿Por qué esta obra transformó las ciencias sociales del país?',
+        equationPrefix: 'Importancia académica =',
+        options: [
+          'Porque documentó con trabajo de campo, testimonios campesinos y análisis jurídico-sociológico la magnitud humana, regional e institucional de La Violencia',
+          'Porque negó que hubiera existido desplazamiento rural en los años 50',
+          'Porque fue una novela fantástica sin datos reales',
+          'Porque propuso cerrar las facultades de sociología y derecho',
+        ],
+        correctAnswer: 'Porque documentó con trabajo de campo, testimonios campesinos y análisis jurídico-sociológico la magnitud humana, regional e institucional de La Violencia',
+        explanation: 'Derivada del recorrido de la Comisión Investigadora de 1958, la obra inauguró el estudio empírico y humanista del conflicto en Colombia.',
+      },
+      {
+        id: 'soc_s22_n1_q2',
+        type: 'visual_choice',
+        prompt: '¿Qué método de investigación social impulsó Orlando Fals Borda para que las comunidades campesinas fueran reconocidas como sujetos de conocimiento y transformación pacífica?',
+        equationPrefix: 'Método sociológico =',
+        options: [
+          'La Investigación Acción Participativa (IAP), que integra el saber académico con el saber popular y comunitario',
+          'El aislamiento estadístico sin diálogo con las comunidades',
+          'La censura de las tradiciones culturales ribereñas y campesinas',
+          'La imposición vertical de modelos ajenos al territorio',
+        ],
+        correctAnswer: 'La Investigación Acción Participativa (IAP), que integra el saber académico con el saber popular y comunitario',
+        explanation: 'La Investigación Acción Participativa (IAP) de Orlando Fals Borda es uno de los mayores aportes de la sociología colombiana al mundo.',
+      },
+    ],
+  },
+  {
+    index: 64,
+    id: 'soc_s22_n2',
+    sectionId: 22,
+    title: 'Lectura: Juntas de Acción Comunal',
+    subtitle: 'Autogestión vecinal, convites veredales y reconstrucción del tejido social',
+    xpReward: 20,
+    gemsReward: 5,
+    offsetX: 18,
+    questions: [
+      {
+        id: 'soc_s22_n2_q1',
+        type: 'visual_choice',
+        prompt: 'Lectura comunitaria: Desde su reconocimiento legal en la Ley 19 de 1958, ¿qué papel cumplieron las Juntas de Acción Comunal (JAC) en las veredas y barrios populares de Colombia?',
+        equationPrefix: 'Papel comunitario =',
+        options: [
+          'Fomentaron la cooperación vecinal pacífica para construir escuelas, caminos, puentes y acueductos y gestionar soluciones ante el Estado',
+          'Reemplazaron a los tribunales de justicia penal',
+          'Impidieron la escolarización de los niños del campo',
+          'Fueron entidades bancarias privadas de especulación financiera',
+        ],
+        correctAnswer: 'Fomentaron la cooperación vecinal pacífica para construir escuelas, caminos, puentes y acueductos y gestionar soluciones ante el Estado',
+        explanation: 'Las Juntas de Acción Comunal han sido escuela de democracia local, solidaridad vecinal y construcción de infraestructura comunitaria.',
+      },
+    ],
+  },
+  {
+    index: 65,
+    id: 'soc_s22_n3',
+    sectionId: 22,
+    title: 'Síntesis Lectora del Módulo 2',
+    subtitle: 'Tierra, organización campesina y participación social',
+    xpReward: 30,
+    gemsReward: 10,
+    offsetX: 0,
+    isCheckpoint: true,
+    questions: [
+      {
+        id: 'soc_s22_n3_q1',
+        type: 'visual_choice',
+        prompt: 'Síntesis de lectura (Módulo 2): ¿Qué conclusión central se desprende del estudio de las tensiones agrarias y los movimientos sociales de mediados del siglo XX?',
+        equationPrefix: 'Conclusión =',
+        options: [
+          'Que el acceso equitativo a la tierra, el respeto a las organizaciones campesinas y sindicales y la inversión social rural son condiciones esenciales para la estabilidad democrática',
+          'Que el desarrollo del país no guarda relación con el bienestar del campesinado',
+          'Que las demandas sociales deben ignorarse en las políticas públicas',
+          'Que la migración forzada beneficia la producción agrícola',
+        ],
+        correctAnswer: 'Que el acceso equitativo a la tierra, el respeto a las organizaciones campesinas y sindicales y la inversión social rural son condiciones esenciales para la estabilidad democrática',
+        explanation: 'Atender las demandas sociales y agrarias por vías institucionales y democráticas previene la conflictividad y fortalece el Estado Social de Derecho.',
+      },
+    ],
+  },
+
+  // ============================================================================
+  // MÓDULO 3 · SECCIÓN 5 (ID 23): Lectura Historiográfica: Enfoques sobre el Conflicto
+  // ============================================================================
+  {
+    index: 66,
+    id: 'soc_s23_n1',
+    sectionId: 23,
+    title: 'Lectura: Multicausalidad Histórica',
+    subtitle: 'Análisis de factores estructurales, políticos e internacionales en los años 60',
+    xpReward: 20,
+    gemsReward: 5,
+    offsetX: -18,
+    questions: [
+      {
+        id: 'soc_s23_n1_q1',
+        type: 'visual_choice',
+        prompt: 'Lectura historiográfica: Al analizar por qué surgieron organizaciones insurgentes como el ELN, las FARC y el EPL en la década de 1960, los estudios históricos coinciden en un enfoque multicausal. ¿Qué elementos articula dicho enfoque?',
+        equationPrefix: 'Elementos articulados =',
+        options: [
+          'Las secuelas no resueltas de La Violencia, los conflictos agrarios, las limitaciones a la oposición durante el Frente Nacional y el impacto ideológico de la Guerra Fría y la Revolución Cubana',
+          'Únicamente factores climáticos sin relación con la política ni la economía',
+          'La ausencia total de población rural en los departamentos andinos',
+          'La inexistencia de partidos políticos en el siglo XX',
+        ],
+        correctAnswer: 'Las secuelas no resueltas de La Violencia, los conflictos agrarios, las limitaciones a la oposición durante el Frente Nacional y el impacto ideológico de la Guerra Fría y la Revolución Cubana',
+        explanation: 'Comprender esta confluencia de factores internos y externos permite explicar históricamente los años 60 con rigor analítico.',
+      },
+    ],
+  },
+  {
+    index: 67,
+    id: 'soc_s23_n2',
+    sectionId: 23,
+    title: 'Lectura: Protesta Civil vs. Vía Armada',
+    subtitle: 'Distinción conceptual y democrática en la historia contemporánea',
+    xpReward: 20,
+    gemsReward: 5,
+    offsetX: 18,
+    questions: [
+      {
+        id: 'soc_s23_n2_q1',
+        type: 'visual_choice',
+        prompt: 'Lectura constitucional e histórica: ¿Por qué es fundamental para la democracia distinguir entre la movilización social pacífica (sindicatos, estudiantes, campesinos) y el accionar de grupos armados?',
+        equationPrefix: 'Fundamento democrático =',
+        options: [
+          'Porque la protesta pacífica es un derecho constitucional legítimo que fortalece la democracia, mientras que estigmatizarla puso en riesgo la vida de líderes cívicos y sociales',
+          'Porque toda petición ciudadana está prohibida por la ley',
+          'Porque los derechos laborales no hacen parte de la Constitución',
+          'Porque el diálogo social carece de relevancia histórica',
+        ],
+        correctAnswer: 'Porque la protesta pacífica es un derecho constitucional legítimo que fortalece la democracia, mientras que estigmatizarla puso en riesgo la vida de líderes cívicos y sociales',
+        explanation: 'Reconocer y proteger la protesta pacífica y el liderazgo social es una garantía indispensable de no repetición.',
+      },
+    ],
+  },
+  {
+    index: 68,
+    id: 'soc_s23_n3',
+    sectionId: 23,
+    title: 'Síntesis Lectora del Módulo 3',
+    subtitle: 'Evaluación crítica de los orígenes insurgentes y el valor de la vía democrática',
+    xpReward: 30,
+    gemsReward: 10,
+    offsetX: 0,
+    isCheckpoint: true,
+    questions: [
+      {
+        id: 'soc_s23_n3_q1',
+        type: 'visual_choice',
+        prompt: 'Síntesis de lectura (Módulo 3): ¿Qué enseñanza histórica deja el estudio del surgimiento del ELN en 1964–1965 y de otros actores insurgentes del siglo XX?',
+        equationPrefix: 'Enseñanza histórica =',
+        options: [
+          'Que conocer con rigor sus orígenes históricos permite comprender el conflicto sin apologías, valorando la apertura democrática y la vía pacífica como único camino legítimo para transformar la sociedad',
+          'Que la historia no debe estudiarse en las aulas ni en los libros',
+          'Que la confrontación armada no tuvo consecuencias sobre la población civil',
+          'Que el cierre de espacios democráticos no afecta la convivencia',
+        ],
+        correctAnswer: 'Que conocer con rigor sus orígenes históricos permite comprender el conflicto sin apologías, valorando la apertura democrática y la vía pacífica como único camino legítimo para transformar la sociedad',
+        explanation: 'El análisis histórico objetivo explica las causas del pasado y reafirma el compromiso ético con la democracia y la paz.',
+      },
+    ],
+  },
+
+  // ============================================================================
+  // MÓDULO 4 · SECCIÓN 5 (ID 24): Lectura Territorial: Crónicas de Regiones y Ríos
+  // ============================================================================
+  {
+    index: 69,
+    id: 'soc_s24_n1',
+    sectionId: 24,
+    title: 'Lectura: Ríos, Territorio y Derechos Bioculturales',
+    subtitle: 'El río Magdalena, el río Atrato y las comunidades ribereñas',
+    xpReward: 20,
+    gemsReward: 5,
+    offsetX: -18,
+    questions: [
+      {
+        id: 'soc_s24_n1_q1',
+        type: 'visual_choice',
+        prompt: 'Lectura territorial: En Colombia, cuencas fluviales como el río Atrato, el río Magdalena y el río Cauca son espacios vitales para comunidades pescadoras, campesinas, afrodescendientes e indígenas. ¿Qué concepto introdujo la Corte Constitucional en la Sentencia T-622 de 2016?',
+        equationPrefix: 'Concepto constitucional =',
+        options: [
+          'Los derechos bioculturales, que vinculan de manera inseparable la conservación de la naturaleza y los ríos con los derechos culturales y territoriales de las comunidades étnicas y ribereñas',
+          'La privatización absoluta de todos los ríos navegables del país',
+          'La prohibición del transporte fluvial entre municipios',
+          'La eliminación de los programas de reforestación y agua potable',
+        ],
+        correctAnswer: 'Los derechos bioculturales, que vinculan de manera inseparable la conservación de la naturaleza y los ríos con los derechos culturales y territoriales de las comunidades étnicas y ribereñas',
+        explanation: 'La protección del territorio y de las fuentes de agua es inseparable de la protección de la vida y la cultura de las comunidades que los habitan.',
+      },
+    ],
+  },
+  {
+    index: 70,
+    id: 'soc_s24_n2',
+    sectionId: 24,
+    title: 'Lectura: Brechas Campo-Ciudad y Paz Territorial',
+    subtitle: 'Infraestructura social, educación rural y presencia integral del Estado',
+    xpReward: 20,
+    gemsReward: 5,
+    offsetX: 18,
+    questions: [
+      {
+        id: 'soc_s24_n2_q1',
+        type: 'visual_choice',
+        prompt: 'Lectura de geografía humana: ¿Por qué los estudios sobre desarrollo regional coinciden en que la paz en Colombia tiene una dimensión eminentemente territorial?',
+        equationPrefix: 'Dimensión territorial =',
+        options: [
+          'Porque las regiones periféricas donde más se concentró la violencia coinciden con aquellas que sufrieron mayor rezago en vías, escuelas, hospitales, justicia formal y titulación agraria',
+          'Porque todas las regiones del país tuvieron exactamente la misma infraestructura desde 1900',
+          'Porque el conflicto solo ocurrió en los centros financieros de las capitales',
+          'Porque las zonas rurales no producen alimentos ni agua para las ciudades',
+        ],
+        correctAnswer: 'Porque las regiones periféricas donde más se concentró la violencia coinciden con aquellas que sufrieron mayor rezago en vías, escuelas, hospitales, justicia formal y titulación agraria',
+        explanation: 'Cerrar las brechas sociales e institucionales entre las regiones rurales y los centros urbanos es indispensable para una paz estable.',
+      },
+    ],
+  },
+  {
+    index: 71,
+    id: 'soc_s24_n3',
+    sectionId: 24,
+    title: 'Síntesis Lectora del Módulo 4',
+    subtitle: 'Resiliencia comunitaria, territorio y dignidad en las regiones',
+    xpReward: 30,
+    gemsReward: 10,
+    offsetX: 0,
+    isCheckpoint: true,
+    questions: [
+      {
+        id: 'soc_s24_n3_q1',
+        type: 'visual_choice',
+        prompt: 'Síntesis de lectura (Módulo 4): ¿Qué papel han desempeñado las comunidades campesinas, indígenas y afrocolombianas frente a las afectaciones territoriales del conflicto?',
+        equationPrefix: 'Papel histórico =',
+        options: [
+          'Han sido constructoras activas de convivencia, resistencia civil pacífica, defensa ambiental y preservación del tejido comunitario',
+          'Han permanecido indiferentes ante la suerte de sus territorios',
+          'Han renunciado a su identidad cultural y organizativa',
+          'Nunca han propuesto iniciativas de diálogo ni de paz local',
+        ],
+        correctAnswer: 'Han sido constructoras activas de convivencia, resistencia civil pacífica, defensa ambiental y preservación del tejido comunitario',
+        explanation: 'Las experiencias de resistencia pacífica y organización comunitaria son un patrimonio democrático y ético de Colombia.',
+      },
+    ],
+  },
+
+  // ============================================================================
+  // MÓDULO 5 · SECCIÓN 5 (ID 25): Lectura Documental: Archivo de DD. HH. y Pedagogía de Paz
+  // ============================================================================
+  {
+    index: 72,
+    id: 'soc_s25_n1',
+    sectionId: 25,
+    title: 'Lectura: Cátedra de la Paz y Ciudadanía',
+    subtitle: 'Ley 1732 de 2014, resolución pacífica de conflictos y derechos humanos',
+    xpReward: 20,
+    gemsReward: 5,
+    offsetX: -18,
+    questions: [
+      {
+        id: 'soc_s25_n1_q1',
+        type: 'visual_choice',
+        prompt: 'Lectura pedagógica: La Ley 1732 de 2014 estableció la Cátedra de la Paz en todas las instituciones educativas del país. ¿Cuáles son sus tres ejes articuladores?',
+        equationPrefix: 'Tres ejes =',
+        options: [
+          'Cultura de la paz (derechos humanos y convivencia), Educación para la paz (resolución pacífica de conflictos) y Desarrollo sostenible',
+          'Instrucción táctica, censura literaria y aislamiento regional',
+          'Memorización sin análisis, exclusión escolar y competencia hostil',
+          'Comercio exterior, banca central y aranceles aduaneros',
+        ],
+        correctAnswer: 'Cultura de la paz (derechos humanos y convivencia), Educación para la paz (resolución pacífica de conflictos) y Desarrollo sostenible',
+        explanation: 'La educación para la paz articula memoria histórica, derechos humanos, participación democrática y cuidado del entorno.',
+      },
+    ],
+  },
+  {
+    index: 73,
+    id: 'soc_s25_n2',
+    sectionId: 25,
+    title: 'Lectura: Archivos de Memoria y No Repetición',
+    subtitle: 'El valor documental de escuchar a las víctimas y preservar la verdad',
+    xpReward: 25,
+    gemsReward: 8,
+    offsetX: 18,
+    questions: [
+      {
+        id: 'soc_s25_n2_q1',
+        type: 'visual_choice',
+        prompt: 'Lectura documental: ¿Por qué los informes de memoria histórica (como "¡Basta Ya!" en 2013 y el Informe Final de la Comisión de la Verdad en 2022) insisten en la escucha plural de las víctimas de todas las regiones?',
+        equationPrefix: 'Sentido ético =',
+        options: [
+          'Porque reconocer el sufrimiento causado a la población civil restaura la dignidad de las víctimas y compromete a toda la sociedad con el principio del "Nunca Más"',
+          'Porque buscan mantener resentimientos entre las regiones',
+          'Porque pretenden reemplazar los derechos fundamentales',
+          'Porque restan importancia a la protección de la vida humana',
+        ],
+        correctAnswer: 'Porque reconocer el sufrimiento causado a la población civil restaura la dignidad de las víctimas y compromete a toda la sociedad con el principio del "Nunca Más"',
+        explanation: 'La verdad histórica y la dignificación de las víctimas constituyen cimientos éticos para la reconciliación y la no repetición.',
+      },
+    ],
+  },
+  {
+    index: 74,
+    id: 'soc_s25_n3',
+    sectionId: 25,
+    title: 'Graduación Magistral: 25 Secciones de Lectura Histórica',
+    subtitle: 'Síntesis general de los 5 módulos y 25 secciones de Ciencias Sociales',
+    xpReward: 50,
+    gemsReward: 25,
+    offsetX: 0,
+    isCheckpoint: true,
+    questions: [
+      {
+        id: 'soc_s25_n3_q1',
+        type: 'visual_choice',
+        prompt: 'Síntesis general (5 Módulos · 25 Secciones): Tras recorrer las lecturas históricas desde los años 50 y 60, las causas sociales, el origen del ELN, los impactos regionales y la defensa de los Derechos Humanos, ¿cuál es el mensaje central para el presente y futuro de Colombia?',
+        equationPrefix: 'Síntesis final =',
+        options: [
+          'Que ninguna idea política justifica la violencia y que la paz se construye fortaleciendo la democracia, la equidad territorial, la memoria histórica y el respeto absoluto a la vida',
+          'Que los conflictos sociales solo pueden tratarse por la fuerza',
+          'Que el estudio de la historia carece de utilidad para la ciudadanía',
+          'Que los derechos humanos son opcionales en tiempos de crisis',
+        ],
+        correctAnswer: 'Que ninguna idea política justifica la violencia y que la paz se construye fortaleciendo la democracia, la equidad territorial, la memoria histórica y el respeto absoluto a la vida',
+        explanation: '¡Felicitaciones! Has completado las 25 secciones y los 5 módulos de Ciencias Sociales con lectura crítica, rigor histórico y compromiso con la paz.',
       },
     ],
   },
 ];
+
+const sectionOrderIndexMap = new Map<number, number>();
+SOCIALES_SECTIONS.forEach((sec, idx) => {
+  sectionOrderIndexMap.set(sec.id, idx);
+});
+
+export const SOCIALES_NODES: ArithmeticNode[] = RAW_SOCIALES_NODES.slice()
+  .sort((a, b) => {
+    const secOrderA = sectionOrderIndexMap.get(a.sectionId) ?? a.sectionId;
+    const secOrderB = sectionOrderIndexMap.get(b.sectionId) ?? b.sectionId;
+    if (secOrderA !== secOrderB) return secOrderA - secOrderB;
+    return a.index - b.index;
+  })
+  .map((node, idx) => ({
+    ...node,
+    index: idx,
+  }));
+
