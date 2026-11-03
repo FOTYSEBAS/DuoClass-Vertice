@@ -28,6 +28,7 @@ import {
   ChevronUp,
   Dumbbell,
   FastForward,
+  FileText,
   Flame,
   Heart,
   Home,
@@ -56,10 +57,6 @@ import {
 } from './services/audioService';
 import { ZoneCharacterMascot } from './components/CourseMascots';
 import {
-  SpacedRepetitionPanelCard,
-  SpacedRepetitionToast,
-} from './components/SpacedRepetitionToast';
-import {
   getRecentFiveLessons,
   RecentHistoryCard,
   RecentLessonHistoryItem,
@@ -73,16 +70,6 @@ import {
   translateNodes,
   translateSections,
 } from './curriculumTranslator';
-import {
-  addSimulatedDaysAfterLogin,
-  getSpacedRepetitionSuggestions,
-  loadSpacedStore,
-  recordLessonReviewed,
-  registerUserLoginSession,
-  resetSimulatedDays,
-  SpacedRepetitionSuggestion,
-  syncCompletedNodesForCourse,
-} from './services/spacedRepetition';
 import {
   Bar,
   BarChart,
@@ -157,7 +144,7 @@ const COURSES_CATALOG: CourseMetaInfo[] = [
     badgeColor: '#FF9600',
     accentText: 'text-[#FF9600]',
     modulesCount: 5,
-    sectionsCount: 25,
+    sectionsCount: 20,
     collectionName: 'socialesProgress',
   },
   {
@@ -166,7 +153,7 @@ const COURSES_CATALOG: CourseMetaInfo[] = [
     shortLabel: 'QUÍMICA',
     badgeColor: '#00CD9C',
     accentText: 'text-[#00CD9C]',
-    modulesCount: 22,
+    modulesCount: 5,
     sectionsCount: 22,
     collectionName: 'chemistryProgress',
   },
@@ -176,7 +163,7 @@ const COURSES_CATALOG: CourseMetaInfo[] = [
     shortLabel: 'FÍSICA',
     badgeColor: '#1CB0F6',
     accentText: 'text-[#1CB0F6]',
-    modulesCount: 20,
+    modulesCount: 5,
     sectionsCount: 20,
     collectionName: 'physicsProgress',
   },
@@ -186,7 +173,7 @@ const COURSES_CATALOG: CourseMetaInfo[] = [
     shortLabel: 'MATEMÁTICAS',
     badgeColor: '#58CC02',
     accentText: 'text-[#58CC02]',
-    modulesCount: 20,
+    modulesCount: 5,
     sectionsCount: 20,
     collectionName: 'mathProgress',
   },
@@ -415,7 +402,133 @@ interface CourseProgressData {
   completedLessonsCount: number;
 }
 
-type BottomTab = 'aprender' | 'practica' | 'guia' | 'logros' | 'perfil';
+type BottomTab = 'aprender' | 'practica' | 'guia' | 'logros' | 'fuentes' | 'perfil';
+
+function SourcesAndReferencesCard({ lang = 'es' }: { lang?: Language }) {
+  const isEn = lang === 'en';
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 sm:p-6 space-y-3">
+        <div className="flex items-center gap-3 text-[#1CB0F6]">
+          <BookOpen className="w-6 h-6 shrink-0" />
+          <h2 className="font-display text-xl sm:text-2xl font-extrabold text-white">
+            {isEn ? 'Sources, References & Official Frameworks' : 'Fuentes, Referencias y Marcos Oficiales'}
+          </h2>
+        </div>
+        <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed">
+          {isEn
+            ? 'All educational content, assessment questions, and study guidelines strictly follow official curriculum standards from the Colombian Ministry of Education (MEN), ICFES Saber 11 evaluation frameworks, public historical memory archives, and standard university science literature. Zero fabricated metrics or fake data.'
+            : 'Todo el contenido académico, las evaluaciones y las guías de estudio se estructuran estrictamente con base en los estándares oficiales del Ministerio de Educación Nacional de Colombia (MEN), los marcos de evaluación ICFES Saber 11, archivos públicos de memoria histórica y literatura científica universitaria de referencia. No empleamos datos ficticios ni métricas simuladas.'}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="rounded-2xl bg-[#131F24] border-2 border-[#FF9600]/40 p-5 space-y-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-3 h-3 rounded-full bg-[#FF9600]" />
+            <h3 className="font-display text-base font-extrabold text-[#FF9600]">
+              {isEn ? 'Social Sciences & Citizenship' : 'Ciencias Sociales y Ciudadanas'}
+            </h3>
+          </div>
+          <ul className="text-xs text-neutral-300 space-y-2 list-disc list-inside leading-relaxed">
+            <li>
+              <strong>ICFES Saber 11:</strong> Marco de Evaluación de Ciencias Sociales y Ciudadanas (Pensamiento Social, Interpretación de Perspectivas y Pensamiento Reflexivo).
+            </li>
+            <li>
+              <strong>Ministerio de Educación Nacional (MEN):</strong> Estándares Básicos de Competencias y Derechos Básicos de Aprendizaje (DBA).
+            </li>
+            <li>
+              <strong>Centro Nacional de Memoria Histórica (CNMH):</strong> Informes de esclarecimiento histórico, conflicto armado interno y memoria en Colombia.
+            </li>
+            <li>
+              <strong>Comisión de la Verdad (2022):</strong> Informe Final "Hay Futuro Si Hay Verdad" y tomos territoriales.
+            </li>
+            <li>
+              <strong>Constitución Política de Colombia (1991):</strong> Título I y II (Derechos Fundamentales, Garantías Institucionales y Mandato de Paz Art. 22).
+            </li>
+          </ul>
+        </div>
+
+        <div className="rounded-2xl bg-[#131F24] border-2 border-[#00CD9C]/40 p-5 space-y-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-3 h-3 rounded-full bg-[#00CD9C]" />
+            <h3 className="font-display text-base font-extrabold text-[#00CD9C]">
+              {isEn ? 'Chemistry & Energetics' : 'Química y Procesos Energéticos'}
+            </h3>
+          </div>
+          <ul className="text-xs text-neutral-300 space-y-2 list-disc list-inside leading-relaxed">
+            <li>
+              <strong>ICFES Saber 11:</strong> Componente Ciencias Naturales · Química (Uso del conocimiento científico, Explicación de fenómenos e Indagación).
+            </li>
+            <li>
+              <strong>OpenStax Chemistry 2e (Rice University):</strong> Termoquímica, Ley de Hess, tabla periódica, estequiometría y soluciones.
+            </li>
+            <li>
+              <strong>IUPAC:</strong> Nomenclatura química inorgánica y orgánica actualizada.
+            </li>
+            <li>
+              <strong>Brown, LeMay, Bursten:</strong> Química: La Ciencia Central (14ª ed.) · Termodinámica y reacciones.
+            </li>
+          </ul>
+        </div>
+
+        <div className="rounded-2xl bg-[#131F24] border-2 border-[#1CB0F6]/40 p-5 space-y-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-3 h-3 rounded-full bg-[#1CB0F6]" />
+            <h3 className="font-display text-base font-extrabold text-[#1CB0F6]">
+              {isEn ? 'Physics & Classical Mechanics' : 'Física y Mecánica Clásica'}
+            </h3>
+          </div>
+          <ul className="text-xs text-neutral-300 space-y-2 list-disc list-inside leading-relaxed">
+            <li>
+              <strong>ICFES Saber 11:</strong> Componente Ciencias Naturales · Física (Trabajo, Energía, Cinemática, Fluidos, Electromagnetismo).
+            </li>
+            <li>
+              <strong>Sears & Zemansky:</strong> Física Universitaria con Física Moderna (Young & Freedman, 14ª ed.).
+            </li>
+            <li>
+              <strong>OpenStax College Physics:</strong> Leyes de Newton, conservación de energía y ondas.
+            </li>
+            <li>
+              <strong>BIPM:</strong> Estándares del Sistema Internacional de Unidades (SI).
+            </li>
+          </ul>
+        </div>
+
+        <div className="rounded-2xl bg-[#131F24] border-2 border-[#58CC02]/40 p-5 space-y-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-3 h-3 rounded-full bg-[#58CC02]" />
+            <h3 className="font-display text-base font-extrabold text-[#58CC02]">
+              {isEn ? 'Mathematics & Quantitative Reasoning' : 'Matemáticas y Razonamiento Cuantitativo'}
+            </h3>
+          </div>
+          <ul className="text-xs text-neutral-300 space-y-2 list-disc list-inside leading-relaxed">
+            <li>
+              <strong>ICFES Saber 11:</strong> Marco de Razonamiento Cuantitativo y Matemáticas (Interpretación, Formulación y Argumentación).
+            </li>
+            <li>
+              <strong>MEN - DBA Matemáticas:</strong> Derechos Básicos de Aprendizaje en aritmética, álgebra, geometría, probabilidad y cálculo.
+            </li>
+            <li>
+              <strong>Stewart Calculus:</strong> Cálculo diferencial e integral, ecuaciones diferenciales básicas.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-[#0A0E11] border-2 border-[#26353D] p-5 space-y-2">
+        <h4 className="font-display text-sm font-extrabold text-[#FFC800] flex items-center gap-2">
+          <span>✓ Transparencia y Rigor en Estadísticas del Estudiante</span>
+        </h4>
+        <p className="text-xs text-neutral-300 leading-relaxed">
+          {isEn
+            ? 'All progress indicators, streak days, XP, and lesson statistics displayed in your profile and achievements panel are measured strictly in real-time from your authentic interactions stored in Firebase Firestore. No simulated data or artificial rankings are used.'
+            : 'Todos los indicadores de progreso, días de racha, XP acumulado e historial de lecciones mostrados en tu perfil y panel de logros se miden en tiempo real exclusivamente a partir de tus interacciones reales registradas en Firebase Cloud Firestore. No utilizamos datos simulados ni rankings artificiales.'}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 const DAILY_XP_GOAL = 50;
 
@@ -1722,7 +1835,6 @@ export default function App() {
     }
   };
 
-  // Spaced Repetition ("repetición espaciada") state across all courses
   const [allCourseNodeIndices, setAllCourseNodeIndices] = useState<
     Record<CourseId, number>
   >({
@@ -1731,8 +1843,6 @@ export default function App() {
     fisica: 0,
     matematicas: 0,
   });
-  const [spacedToastDismissed, setSpacedToastDismissed] = useState(false);
-  const [spacedRefreshTick, setSpacedRefreshTick] = useState(0);
 
   // Switch between Ciencias Sociales, Química, Física, and Matemáticas cleanly
   const handleSwitchCourse = (nextCourse: CourseId) => {
@@ -1894,14 +2004,8 @@ export default function App() {
           await batch.commit();
         }
 
-        // Extract currentNodeIndex and updatedAt from all 4 courses for Spaced Repetition on login
         const extractNodeIndex = (snap: typeof mathSnap) =>
           snap.exists() ? ((snap.data() as CourseProgressData).currentNodeIndex ?? 0) : 0;
-        const extractUpdatedAtMs = (snap: typeof mathSnap): number | null => {
-          if (!snap.exists()) return null;
-          const raw = (snap.data() as { updatedAt?: { toMillis?: () => number } }).updatedAt;
-          return raw && typeof raw.toMillis === 'function' ? raw.toMillis() : null;
-        };
 
         const indices: Record<CourseId, number> = {
           matematicas: extractNodeIndex(mathSnap),
@@ -1910,47 +2014,6 @@ export default function App() {
           sociales: extractNodeIndex(socialesSnap),
         };
         setAllCourseNodeIndices(indices);
-
-        const timestamps = [
-          extractUpdatedAtMs(mathSnap),
-          extractUpdatedAtMs(physicsSnap),
-          extractUpdatedAtMs(chemistrySnap),
-          extractUpdatedAtMs(socialesSnap),
-        ].filter((t): t is number => typeof t === 'number');
-        const oldestUpdatedAt =
-          timestamps.length > 0 ? Math.min(...timestamps) : null;
-
-        registerUserLoginSession(user.uid, oldestUpdatedAt);
-        syncCompletedNodesForCourse(
-          user.uid,
-          'matematicas',
-          ARITHMETIC_NODES,
-          indices.matematicas,
-          extractUpdatedAtMs(mathSnap)
-        );
-        syncCompletedNodesForCourse(
-          user.uid,
-          'fisica',
-          PHYSICS_NODES,
-          indices.fisica,
-          extractUpdatedAtMs(physicsSnap)
-        );
-        syncCompletedNodesForCourse(
-          user.uid,
-          'quimica',
-          CHEMISTRY_NODES,
-          indices.quimica,
-          extractUpdatedAtMs(chemistrySnap)
-        );
-        syncCompletedNodesForCourse(
-          user.uid,
-          'sociales',
-          SOCIALES_NODES,
-          indices.sociales,
-          extractUpdatedAtMs(socialesSnap)
-        );
-        setSpacedToastDismissed(false);
-        setSpacedRefreshTick((prev) => prev + 1);
       } catch (error) {
         handleFirestoreError(error, OperationType.WRITE, `socialesProgress/${user.uid}`);
       }
@@ -1999,13 +2062,6 @@ export default function App() {
             ...prev,
             [activeCourse]: data.currentNodeIndex,
           }));
-          syncCompletedNodesForCourse(
-            uid,
-            activeCourse,
-            nodesList,
-            data.currentNodeIndex
-          );
-          setSpacedRefreshTick((prev) => prev + 1);
 
           const syncKey = `${activeCourse}:${data.currentNodeIndex}`;
           if (lastSyncedCourseNodeRef.current !== syncKey) {
@@ -2250,19 +2306,12 @@ export default function App() {
           completedLessonsCount: Math.min(100000, progress.completedLessonsCount + 1),
           updatedAt: serverTimestamp(),
         });
-        recordLessonReviewed(
-          currentUser.uid,
-          activeCourse,
-          activeLessonNode.id,
-          activeLessonNode.index
-        );
         recordRecentLessonCompletion(currentUser.uid, {
           course: activeCourse,
           node: activeLessonNode,
           mistakesCount: mistakesInLesson,
           xpEarned: earnedXp,
         });
-        setSpacedRefreshTick((prev) => prev + 1);
         setLessonCompleted(true);
         if (unlockedNewLevel || reachedNewXpLevel) {
           playLevelUpSound();
@@ -2279,7 +2328,7 @@ export default function App() {
     }
   };
 
-  // Refill hearts using gems
+  // Refill hearts using gems in shop
   const handleRefillHearts = async () => {
     if (!currentUser || progress.hearts >= 5) return;
     const gemCost = 20;
@@ -2330,13 +2379,13 @@ export default function App() {
       playCorrectSound();
       setDrillFeedback(
         lang === 'en'
-          ? 'Correct! +5 XP and +1 heart restored'
-          : '¡Correcto! +5 XP y +1 vida recuperada'
+          ? 'Correct! +5 XP & +2 Gems earned'
+          : '¡Correcto! +5 XP y +2 Gemas ganadas'
       );
       try {
         await updateDoc(doc(db, currentCourseCollection, currentUser.uid), {
           xp: Math.min(1000000, progress.xp + 5),
-          hearts: Math.min(5, progress.hearts + 1),
+          gems: Math.min(1000000, progress.gems + 2),
           updatedAt: serverTimestamp(),
         });
       } catch (error) {
@@ -2499,7 +2548,7 @@ export default function App() {
         return;
       }
 
-      // Switch tabs with keys 1..5
+      // Switch tabs with keys 1..6
       if (e.key === '1') {
         e.preventDefault();
         setActiveTab('aprender');
@@ -2522,6 +2571,11 @@ export default function App() {
       }
       if (e.key === '5') {
         e.preventDefault();
+        setActiveTab('fuentes');
+        return;
+      }
+      if (e.key === '6') {
+        e.preventDefault();
         setActiveTab('perfil');
         return;
       }
@@ -2542,12 +2596,11 @@ export default function App() {
         return;
       }
 
-      // Press 'm' or 'M' to cycle between modules (1..5 for Sociales, 1..N for the rest)
+      // Press 'm' or 'M' to cycle between 5 modules
       if (e.key === 'm' || e.key === 'M') {
         e.preventDefault();
-        const maxModules = activeCourse === 'sociales' ? 5 : currentCourseSections.length;
         setSelectedModuleFilter((prev) =>
-          prev < maxModules ? ((prev + 1) as ModuleId) : 1
+          prev < 5 ? ((prev + 1) as ModuleId) : 1
         );
         return;
       }
@@ -3107,78 +3160,9 @@ export default function App() {
   const currentActiveNode =
     currentCourseNodes[Math.min(progress.currentNodeIndex, currentCourseNodes.length - 1)];
 
-  // Compute Spaced Repetition suggestions across all courses
-  const spacedStoreSnapshot = currentUser
-    ? loadSpacedStore(currentUser.uid)
-    : null;
-  const spacedSuggestions: SpacedRepetitionSuggestion[] =
-    currentUser && spacedRefreshTick >= 0
-      ? getSpacedRepetitionSuggestions(
-          currentUser.uid,
-          activeCourse,
-          {
-            sociales: translateNodes(SOCIALES_NODES, lang),
-            quimica: translateNodes(CHEMISTRY_NODES, lang),
-            fisica: translateNodes(PHYSICS_NODES, lang),
-            matematicas: translateNodes(ARITHMETIC_NODES, lang),
-          },
-          {
-            ...allCourseNodeIndices,
-            [activeCourse]: progress.currentNodeIndex,
-          }
-        )
-      : [];
-
-  const handleStartSpacedReview = (suggestion: SpacedRepetitionSuggestion) => {
-    if (suggestion.course !== activeCourse) {
-      setActiveCourse(suggestion.course);
-    }
-    const targetSections =
-      suggestion.course === 'sociales'
-        ? SOCIALES_SECTIONS
-        : suggestion.course === 'quimica'
-        ? CHEMISTRY_SECTIONS
-        : suggestion.course === 'fisica'
-        ? PHYSICS_SECTIONS
-        : ARITHMETIC_SECTIONS;
-    const sec = targetSections.find((s) => s.id === suggestion.node.sectionId);
-    if (sec?.moduleId) {
-      setSelectedModuleFilter(sec.moduleId as ModuleId);
-    }
-    setActiveTab('aprender');
-    startLesson(suggestion.node);
-  };
-
-  const handleSimulateSpacedDays = (extraDays: number) => {
-    if (!currentUser) return;
-    addSimulatedDaysAfterLogin(currentUser.uid, extraDays);
-    setSpacedToastDismissed(false);
-    setSpacedRefreshTick((prev) => prev + 1);
-  };
-
-  const handleResetSpacedSimulation = () => {
-    if (!currentUser) return;
-    resetSimulatedDays(currentUser.uid);
-    setSpacedRefreshTick((prev) => prev + 1);
-  };
-
   // Compute the last 5 completed lessons for Historial Reciente in Perfil
   const recentFiveLessons: RecentLessonHistoryItem[] =
-    currentUser && spacedRefreshTick >= 0
-      ? getRecentFiveLessons(
-          currentUser.uid,
-          {
-            sociales: translateNodes(SOCIALES_NODES, lang),
-            quimica: translateNodes(CHEMISTRY_NODES, lang),
-            fisica: translateNodes(PHYSICS_NODES, lang),
-            matematicas: translateNodes(ARITHMETIC_NODES, lang),
-          },
-          {
-            ...allCourseNodeIndices,
-            [activeCourse]: progress.currentNodeIndex,
-          }
-        )
-      : [];
+    currentUser ? getRecentFiveLessons(currentUser.uid) : [];
 
   const handleReplayRecentLesson = (item: RecentLessonHistoryItem) => {
     const courseNodesMap = {
@@ -3246,8 +3230,15 @@ export default function App() {
       inactiveColor: 'text-[#FFC800]',
     },
     {
-      id: 'perfil',
+      id: 'fuentes',
       keyNum: '5',
+      label: getTranslation(lang, 'tabSources').toUpperCase(),
+      icon: <FileText className="w-6 h-6 shrink-0" />,
+      inactiveColor: 'text-[#1CB0F6]',
+    },
+    {
+      id: 'perfil',
+      keyNum: '6',
       label: getTranslation(lang, 'tabProfile').toUpperCase(),
       icon: <MoreHorizontal className="w-6 h-6 shrink-0" />,
       inactiveColor: 'text-[#CE82FF]',
@@ -3293,19 +3284,104 @@ export default function App() {
             activeBg: 'bg-[#58CC02] text-black',
           },
         ]
-      : currentCourseSections.map((sec) => ({
-          id: sec.id as ModuleId,
-          label: lang === 'es' ? `Mód. ${sec.id}` : `Mod. ${sec.id}`,
-          sub: sec.title.replace(/^(Sección|Section)\s+\d+\s*·\s*/i, '').slice(0, 14),
-          activeBg:
-            sec.id % 4 === 1
-              ? 'bg-[#00CD9C] text-black'
-              : sec.id % 4 === 2
-              ? 'bg-[#CE82FF] text-black'
-              : sec.id % 4 === 3
-              ? 'bg-[#FF9600] text-black'
-              : 'bg-[#1CB0F6] text-black',
-        }));
+      : activeCourse === 'quimica'
+      ? [
+          {
+            id: 1,
+            label: lang === 'es' ? 'Mód. 1' : 'Mod. 1',
+            sub: lang === 'es' ? 'Materia y Cambios' : 'Matter & Changes',
+            activeBg: 'bg-[#00CD9C] text-black',
+          },
+          {
+            id: 2,
+            label: lang === 'es' ? 'Mód. 2' : 'Mod. 2',
+            sub: lang === 'es' ? 'Átomos y Tabla' : 'Atoms & Table',
+            activeBg: 'bg-[#1CB0F6] text-black',
+          },
+          {
+            id: 3,
+            label: lang === 'es' ? 'Mód. 3' : 'Mod. 3',
+            sub: lang === 'es' ? 'Enlaces y Reacc.' : 'Bonds & Reactions',
+            activeBg: 'bg-[#CE82FF] text-black',
+          },
+          {
+            id: 4,
+            label: lang === 'es' ? 'Mód. 4' : 'Mod. 4',
+            sub: lang === 'es' ? 'Termoquímica' : 'Thermochemistry',
+            activeBg: 'bg-[#FF9600] text-black',
+          },
+          {
+            id: 5,
+            label: lang === 'es' ? 'Mód. 5' : 'Mod. 5',
+            sub: lang === 'es' ? 'Orgánica y Rad.' : 'Organic & Rad.',
+            activeBg: 'bg-[#58CC02] text-black',
+          },
+        ]
+      : activeCourse === 'fisica'
+      ? [
+          {
+            id: 1,
+            label: lang === 'es' ? 'Mód. 1' : 'Mod. 1',
+            sub: lang === 'es' ? 'Trabajo y Energía' : 'Work & Energy',
+            activeBg: 'bg-[#1CB0F6] text-black',
+          },
+          {
+            id: 2,
+            label: lang === 'es' ? 'Mód. 2' : 'Mod. 2',
+            sub: lang === 'es' ? 'Cinemática y Din.' : 'Kinematics',
+            activeBg: 'bg-[#00CD9C] text-black',
+          },
+          {
+            id: 3,
+            label: lang === 'es' ? 'Mód. 3' : 'Mod. 3',
+            sub: lang === 'es' ? 'Termo y Fluidos' : 'Thermo & Fluids',
+            activeBg: 'bg-[#CE82FF] text-black',
+          },
+          {
+            id: 4,
+            label: lang === 'es' ? 'Mód. 4' : 'Mod. 4',
+            sub: lang === 'es' ? 'Electro y Ondas' : 'Electro & Waves',
+            activeBg: 'bg-[#FF9600] text-black',
+          },
+          {
+            id: 5,
+            label: lang === 'es' ? 'Mód. 5' : 'Mod. 5',
+            sub: lang === 'es' ? 'Física Moderna' : 'Modern Physics',
+            activeBg: 'bg-[#58CC02] text-black',
+          },
+        ]
+      : [
+          {
+            id: 1,
+            label: lang === 'es' ? 'Mód. 1' : 'Mod. 1',
+            sub: lang === 'es' ? 'Aritmética y Fracc.' : 'Arithmetic',
+            activeBg: 'bg-[#58CC02] text-black',
+          },
+          {
+            id: 2,
+            label: lang === 'es' ? 'Mód. 2' : 'Mod. 2',
+            sub: lang === 'es' ? 'Álgebra y Func.' : 'Algebra',
+            activeBg: 'bg-[#1CB0F6] text-black',
+          },
+          {
+            id: 3,
+            label: lang === 'es' ? 'Mód. 3' : 'Mod. 3',
+            sub: lang === 'es' ? 'Geometría y Trig.' : 'Geometry & Trig',
+            activeBg: 'bg-[#CE82FF] text-black',
+          },
+          {
+            id: 4,
+            label: lang === 'es' ? 'Mód. 4' : 'Mod. 4',
+            sub: lang === 'es' ? 'Prob. y Estad.' : 'Probability',
+            activeBg: 'bg-[#FF9600] text-black',
+          },
+          {
+            id: 5,
+            label: lang === 'es' ? 'Mód. 5' : 'Mod. 5',
+            sub: lang === 'es' ? 'Cálculo y EDOs' : 'Calculus & ODEs',
+            activeBg: 'bg-[#00CD9C] text-black',
+          },
+        ];
 
   const activeCourseLevelCount = Math.max(1, progress.currentNodeIndex);
 
@@ -3596,56 +3672,53 @@ export default function App() {
                   {/* Subtle Active Module Title Strip */}
                   <div className="flex items-center justify-between px-1 pt-1 text-xs text-neutral-400">
                     <span className="font-medium">
-                      {activeCourse === 'sociales' ? (
+                      {activeCourse === 'sociales' && (
                         <>
-                          {selectedModuleFilter === 1 &&
-                            (lang === 'es'
-                              ? 'Módulo 1 · Contexto Político y Social de Colombia en las Décadas de 1950 y 1960'
-                              : 'Module 1 · Political & Social Context of Colombia in the 1950s & 1960s')}
-                          {selectedModuleFilter === 2 &&
-                            (lang === 'es'
-                              ? 'Módulo 2 · Causas, Tensiones Agrarias y Movimientos Sociales del Conflicto'
-                              : 'Module 2 · Agrarian Tensions & Social Movements of the Conflict')}
-                          {selectedModuleFilter === 3 &&
-                            (lang === 'es'
-                              ? 'Módulo 3 · Antecedentes y Surgimiento Histórico del ELN (1964–1965)'
-                              : 'Module 3 · Background & Historical Emergence of the ELN (1964–1965)')}
-                          {selectedModuleFilter === 4 &&
-                            (lang === 'es'
-                              ? 'Módulo 4 · Transformaciones Territoriales y Efectos en Comunidades'
-                              : 'Module 4 · Territorial Transformations & Community Impacts')}
-                          {selectedModuleFilter === 5 &&
-                            (lang === 'es'
-                              ? 'Módulo 5 · Memoria Histórica, Derechos Humanos, No Repetición y Paz'
-                              : 'Module 5 · Historical Memory, Human Rights, Non-Repetition & Peace')}
+                          {selectedModuleFilter === 1 && (lang === 'es' ? 'Módulo 1 · Contexto Político y Bipartidismo (Años 50 y 60)' : 'Module 1 · Political Context & Bipartisanship')}
+                          {selectedModuleFilter === 2 && (lang === 'es' ? 'Módulo 2 · Causas, Tensiones Agrarias y Movimientos Sociales' : 'Module 2 · Agrarian Tensions & Social Movements')}
+                          {selectedModuleFilter === 3 && (lang === 'es' ? 'Módulo 3 · Origen Histórico del ELN y Grupos Insurgentes' : 'Module 3 · Historical Origin of ELN')}
+                          {selectedModuleFilter === 4 && (lang === 'es' ? 'Módulo 4 · Transformaciones Territoriales y Comunidades' : 'Module 4 · Territorial Transformations')}
+                          {selectedModuleFilter === 5 && (lang === 'es' ? 'Módulo 5 · Memoria Histórica, Derechos Humanos y Paz' : 'Module 5 · Historical Memory & Peace')}
                         </>
-                      ) : (
-                        <span>
-                          {lang === 'es' ? `Módulo ${selectedModuleFilter}` : `Module ${selectedModuleFilter}`} ·{' '}
-                          {currentCourseSections.find((s) => s.id === selectedModuleFilter)?.title.replace(/^(Sección|Section)\s+\d+\s*·\s*/i, '') || ''}
-                        </span>
+                      )}
+                      {activeCourse === 'quimica' && (
+                        <>
+                          {selectedModuleFilter === 1 && (lang === 'es' ? 'Módulo 1 · Materia, Cambios Físicos/Químicos y Leyes' : 'Module 1 · Matter, Physical/Chemical Changes & Laws')}
+                          {selectedModuleFilter === 2 && (lang === 'es' ? 'Módulo 2 · Estructura Atómica, Tabla Periódica y Modelos' : 'Module 2 · Atomic Structure & Periodic Table')}
+                          {selectedModuleFilter === 3 && (lang === 'es' ? 'Módulo 3 · Enlace Químico, Estequiometría y Soluciones' : 'Module 3 · Chemical Bonding & Solutions')}
+                          {selectedModuleFilter === 4 && (lang === 'es' ? 'Módulo 4 · Termoquímica, Cinética y Equilibrio Químico' : 'Module 4 · Thermochemistry & Kinetics')}
+                          {selectedModuleFilter === 5 && (lang === 'es' ? 'Módulo 5 · Química Orgánica, Radiación y Aplicaciones' : 'Module 5 · Organic Chemistry & Radiation')}
+                        </>
+                      )}
+                      {activeCourse === 'fisica' && (
+                        <>
+                          {selectedModuleFilter === 1 && (lang === 'es' ? 'Módulo 1 · Trabajo Mecánico, Energía y Potencia' : 'Module 1 · Mechanical Work, Energy & Power')}
+                          {selectedModuleFilter === 2 && (lang === 'es' ? 'Módulo 2 · Cinemática Lineal, MUA y Dinámica Newtoniana' : 'Module 2 · Kinematics & Newtonian Dynamics')}
+                          {selectedModuleFilter === 3 && (lang === 'es' ? 'Módulo 3 · Termodinámica, Calor y Mecánica de Fluidos' : 'Module 3 · Thermodynamics & Fluid Mechanics')}
+                          {selectedModuleFilter === 4 && (lang === 'es' ? 'Módulo 4 · Electromagnetismo, Ondas y Óptica' : 'Module 4 · Electromagnetism & Waves')}
+                          {selectedModuleFilter === 5 && (lang === 'es' ? 'Módulo 5 · Física Moderna, Cuántica y Astrofísica' : 'Module 5 · Modern Physics & Quantum Theory')}
+                        </>
+                      )}
+                      {activeCourse === 'matematicas' && (
+                        <>
+                          {selectedModuleFilter === 1 && (lang === 'es' ? 'Módulo 1 · Fundamentos Aritméticos, Potencias y Fracciones' : 'Module 1 · Arithmetic, Powers & Fractions')}
+                          {selectedModuleFilter === 2 && (lang === 'es' ? 'Módulo 2 · Álgebra, Ecuaciones y Funciones' : 'Module 2 · Algebra & Equations')}
+                          {selectedModuleFilter === 3 && (lang === 'es' ? 'Módulo 3 · Geometría, Trigonometría y Mediciones' : 'Module 3 · Geometry, Trigonometry & Measurements')}
+                          {selectedModuleFilter === 4 && (lang === 'es' ? 'Módulo 4 · Estadística, Probabilidad y Combinatoria' : 'Module 4 · Statistics & Probability')}
+                          {selectedModuleFilter === 5 && (lang === 'es' ? 'Módulo 5 · Cálculo Diferencial, Integral y EDOs' : 'Module 5 · Differential Calculus & ODEs')}
+                        </>
                       )}
                     </span>
                     <span className="font-mono text-[11px] text-neutral-500 whitespace-nowrap ml-2">
                       {lang === 'es' ? 'Presiona M para cambiar módulo' : 'Press M to change module'}
                     </span>
                   </div>
-                  {/* Compact Spaced Repetition Login Notification */}
-                  <SpacedRepetitionToast
-                    suggestions={spacedSuggestions}
-                    dismissed={spacedToastDismissed}
-                    simulatedDaysOffset={spacedStoreSnapshot?.simulatedDaysOffset ?? 0}
-                    onDismiss={() => setSpacedToastDismissed(true)}
-                    onStartReview={handleStartSpacedReview}
-                    onSimulateDays={handleSimulateSpacedDays}
-                    lang={lang}
-                  />
                 </div>
 
                 {/* Sections of the Currently Active Module with Generous Breathing Room */}
                 <div className="space-y-16">
                   {currentCourseSections
-                    .filter((sec) => (activeCourse === 'sociales' ? (sec.moduleId ?? 1) === selectedModuleFilter : sec.id === selectedModuleFilter))
+                    .filter((sec) => (sec.moduleId ?? Math.ceil(sec.id / 4)) === selectedModuleFilter)
                     .map((section) => {
                       const sectionNodes = currentCourseNodes.filter(
                         (n) => n.sectionId === section.id
@@ -3973,28 +4046,13 @@ export default function App() {
                         {lang === 'es' ? 'Para calcular' : 'To calculate'} <span className="font-mono text-[#58CC02]">a × b</span>, {lang === 'es' ? 'descompón uno de los factores (ej.' : 'decompose one factor (e.g.'} <span className="font-mono text-[#58CC02]">14 × 6 = (10 × 6) + (4 × 6) = 84</span>).
                       </p>
                       <p>
-                        <strong className="text-white">{lang === 'es' ? '3. Recompensa inmediata:' : '3. Immediate reward:'}</strong>{' '}
+                        <strong className="text-white">{lang === 'es' ? '3. Recompensa de práctica:' : '3. Practice reward:'}</strong>{' '}
                         {lang === 'es' ? 'Cada respuesta correcta en el panel derecho otorga' : 'Each correct answer on the right panel grants'}{' '}
-                        <span className="font-mono text-[#FFC800]">+5 XP</span> {lang === 'es' ? 'y recupera' : 'and refills'}{' '}
-                        <span className="font-mono text-[#FF4B4B]">+1 {lang === 'es' ? 'vida' : 'heart'}</span> {lang === 'es' ? 'gratis (hasta 5/5).' : 'for free (up to 5/5).'}
+                        <span className="font-mono text-[#FFC800]">+5 XP</span> {lang === 'es' ? 'y' : 'and'}{' '}
+                        <span className="font-mono text-[#1CB0F6]">+2 {lang === 'es' ? 'Gemas' : 'Gems'}</span>.
                       </p>
                     </div>
                   </div>
-
-                  {/* Spaced Repetition Review Queue on the Left Column */}
-                  <SpacedRepetitionPanelCard
-                    suggestions={spacedSuggestions}
-                    simulatedDaysOffset={spacedStoreSnapshot?.simulatedDaysOffset ?? 0}
-                    isToastDismissed={spacedToastDismissed}
-                    onStartReview={handleStartSpacedReview}
-                    onSimulateDays={handleSimulateSpacedDays}
-                    onResetSimulation={handleResetSpacedSimulation}
-                    onRestoreToast={() => {
-                      setSpacedToastDismissed(false);
-                      setActiveTab('aprender');
-                    }}
-                    lang={lang}
-                  />
                 </div>
 
                 {/* COLUMNA DERECHA EN PC: RESPONDER */}
@@ -4323,7 +4381,14 @@ export default function App() {
             )}
 
             {/* ============================================================== */}
-            {/* TAB 5: PERFIL, POTENCIADORES, VIDAS, REINICIAR Y SESIÓN        */}
+            {/* TAB 5: FUENTES Y REFERENCIAS ACADÉMICAS OFICIALES              */}
+            {/* ============================================================== */}
+            {activeTab === 'fuentes' && (
+              <SourcesAndReferencesCard lang={lang} />
+            )}
+
+            {/* ============================================================== */}
+            {/* TAB 6: PERFIL, POTENCIADORES, VIDAS, REINICIAR Y SESIÓN        */}
             {/* ============================================================== */}
             {activeTab === 'perfil' && (
               <div className="space-y-6">
@@ -4577,21 +4642,6 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-
-                {/* Spaced Repetition Memory & Multi-Day Login Simulator in Perfil */}
-                <SpacedRepetitionPanelCard
-                  suggestions={spacedSuggestions}
-                  simulatedDaysOffset={spacedStoreSnapshot?.simulatedDaysOffset ?? 0}
-                  isToastDismissed={spacedToastDismissed}
-                  onStartReview={handleStartSpacedReview}
-                  onSimulateDays={handleSimulateSpacedDays}
-                  onResetSimulation={handleResetSpacedSimulation}
-                  onRestoreToast={() => {
-                    setSpacedToastDismissed(false);
-                    setActiveTab('aprender');
-                  }}
-                  lang={lang}
-                />
 
                 {/* Reiniciar progreso & Cerrar sesión */}
                 <div className="rounded-2xl bg-[#131F24] border-2 border-[#26353D] p-5 space-y-3">

@@ -12,6 +12,7 @@ export const TRANSLATIONS = {
     tabPractice: 'Práctica',
     tabGuide: 'Guía',
     tabAchievements: 'Logros',
+    tabSources: 'Fuentes',
     tabProfile: 'Perfil',
 
     // Courses
@@ -167,6 +168,7 @@ export const TRANSLATIONS = {
     tabPractice: 'Practice',
     tabGuide: 'Guide',
     tabAchievements: 'Achievements',
+    tabSources: 'Sources',
     tabProfile: 'Profile',
 
     // Courses
